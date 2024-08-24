@@ -86,13 +86,20 @@ namespace Editor.View
             double scrollBarY = ArrowHeight + oneLineHeight * startLineIdx;
             double scrollBarHeight = (possibleAmountOfLinesInView * (this.ActualHeight - ArrowHeight * 2)) / (allLines);
 
-            this.ScrollBarRect = new Rect(
-                new Point(0, scrollBarY),
-                new Size(
-                    this.ActualWidth,
-                    scrollBarHeight
-                )
-            );
+            if (scrollBarHeight > 0)
+            {
+                this.ScrollBarRect = new Rect(
+                    new Point(0, scrollBarY),
+                    new Size(
+                        this.ActualWidth,
+                        scrollBarHeight
+                    )
+                );
+            }
+            else
+            {
+                this.ScrollBarRect = Rect.Empty;
+            }
 
             drawingContext.DrawRectangle(
                 new SolidColorBrush(Color.FromArgb(255, 15, 15, 15)),
