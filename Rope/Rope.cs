@@ -51,13 +51,15 @@ namespace Note.Rope
 
         public static Rope FromStream(Stream stream, Encoding encoding)
         {
-            Node rootNode = new Node()
+            var rope = new Rope(new Node()
             {
                 Counts = Counts.Empty,
                 BufferRef = Buffer.WithDefault().CreateReference(0, 0),
-            };
+            });
 
             byte[] byteBuffer = new byte[Rope.FILE_READ_BUFFER_SIZE];
+
+            int insertCharIndex = 0;
 
             while (true)
             {
@@ -80,10 +82,11 @@ namespace Note.Rope
                     amountOfCharsRead--;
                 }
 
-                rootNode.Insert(0, new ReadOnlySpan<char>(chars, 0, amountOfCharsRead));
+                rope.Insert(insertCharIndex, new ReadOnlySpan<char>(chars, 0, amountOfCharsRead));
+                insertCharIndex += amountOfCharsRead;
             }
 
-            return new Rope(rootNode);
+            return rope;
         }
 
         public void ValidateTree()

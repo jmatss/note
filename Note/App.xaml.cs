@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using Editor;
+using System.Windows;
 
 namespace Note
 {
@@ -6,7 +7,7 @@ namespace Note
     {
         private void Application_Startup(object sender, StartupEventArgs e)
         {
-            var viewModel = new MainWindowViewModel();
+            var viewModel = new MainWindowViewModel(new Settings());
             var view = new MainWindowView(viewModel);
             view.Show();
         }

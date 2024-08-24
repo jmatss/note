@@ -7,12 +7,12 @@ namespace Note
 {
     public class InputKeyboard
     {
-        public static void HandleText(TextViewModel viewModel, string text)
+        public static void HandleText(FileViewModel viewModel, string text)
         {
             viewModel.HandlePrintableKeys(text);
         }
 
-        public static void HandleKey(TextViewModel viewModel, KeyboardDevice keyboard, Key key)
+        public static void HandleKey(FileViewModel viewModel, KeyboardDevice keyboard, Key key)
         {
             Modifiers modifiers = new Modifiers(keyboard);
 

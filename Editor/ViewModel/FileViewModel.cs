@@ -2,6 +2,7 @@
 using Note.Rope;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -10,31 +11,29 @@ using static Editor.HandleInput;
 
 namespace Editor.ViewModel
 {
-    public class TextViewModel
+    public class FileViewModel
     {
         // TODO: Get this value in cleaner way
         private readonly double pixelsPerDip = VisualTreeHelper.GetDpi(new Button()).PixelsPerDip;
 
-        public TextViewModel(Rope rope, Settings settings)
+        public FileViewModel(Settings settings)
         {
-            this.Rope = rope;
             this.Settings = settings;
-            this.ResetSelections();
         }
 
-        public Rope Rope { get; }
+        public Rope Rope { get; private set; } = Rope.FromString(string.Empty, Encoding.UTF8);
 
         public Settings Settings { get; }
 
         public List<LineViewModel> Lines { get; } = new List<LineViewModel>();
 
-        public GlyphRunViewModel Text { get; set; }
+        public GlyphRunViewModel? Text { get; set; }
 
-        public GlyphRunViewModel LineNumbers { get; set; }
+        public GlyphRunViewModel? LineNumbers { get; set; }
 
-        public GlyphRunViewModel CustomCharWhitespace { get; set; }
+        public GlyphRunViewModel? CustomCharWhitespace { get; set; }
 
-        public CustomCharViewModel CustomChars { get; set; }
+        public CustomCharViewModel? CustomChars { get; set; }
 
         public List<SelectionViewModel> Selections { get; } = new List<SelectionViewModel>();
 
@@ -68,13 +67,20 @@ namespace Editor.ViewModel
             }
         }
 
-        public GlyphTypeface GlyphTypeFace { get; private set; }
+        public GlyphTypeface? GlyphTypeFace { get; private set; }
 
         public List<SelectionRange> SelectionRanges { get; } = new List<SelectionRange>();
 
         public Action? OnDraw { get; set; }
 
         public Action? OnDrawSelections { get; set; }
+
+        public void Load(Rope rope)
+        {
+            this.Rope = rope;
+            this.ResetSelections();
+            this.Recalculate(false, 0);
+        }
 
         public void HandlePrintableKeys(string text)
         {
@@ -284,7 +290,7 @@ namespace Editor.ViewModel
                 return;
             }
 
-            (double charDrawWidth, double charDrawHeight) = TextViewModel.CharacterDrawSize(this.Settings, this.pixelsPerDip);
+            (double charDrawWidth, double charDrawHeight) = FileViewModel.CharacterDrawSize(this.Settings, this.pixelsPerDip);
 
             this.RecalculateLines(charDrawWidth, charDrawHeight, bringCursorIntoView, scrollDelta);
 

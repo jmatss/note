@@ -22,11 +22,11 @@ namespace Editor.View
             BackgroundColor.Freeze();
         }
 
-        public TextViewModel ViewModel => (TextViewModel)base.DataContext;
+        public FileViewModel ViewModel => (FileViewModel)base.DataContext;
 
         private void UserControl_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            if (e.NewValue is TextViewModel vm)
+            if (e.NewValue is FileViewModel vm)
             {
                 vm.OnDraw += this.Draw;
             }
@@ -48,7 +48,7 @@ namespace Editor.View
         {
             using (DrawingContext drawingContext = this.drawingGroup.Open())
             {
-                this.Width = (this.ViewModel.LineNumbers.Width ?? 0) + LineNumbersSpacing.Left + LineNumbersSpacing.Right;
+                this.Width = (this.ViewModel.LineNumbers?.Width ?? 0) + LineNumbersSpacing.Left + LineNumbersSpacing.Right;
                 this.Width = Math.Ceiling(this.Width);
 
                 this.DrawBackground(drawingContext, LineNumbersSpacing);

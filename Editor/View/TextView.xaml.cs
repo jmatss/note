@@ -21,7 +21,7 @@ namespace Editor.View
             BackgroundColor.Freeze();
         }
 
-        public TextViewModel ViewModel => base.DataContext as TextViewModel;
+        public FileViewModel ViewModel => (FileViewModel)base.DataContext;
 
         public bool MouseIsCaptured { get; set; } = false;
 
@@ -35,7 +35,7 @@ namespace Editor.View
 
         private void UserControl_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            if (e.NewValue is TextViewModel vm)
+            if (e.NewValue is FileViewModel vm)
             {
                 vm.OnDraw += this.Draw;
                 vm.OnDrawSelections += this.DrawSelections;
@@ -73,7 +73,7 @@ namespace Editor.View
             }
         }
 
-        private static void DrawBackground(DrawingContext drawingContext, TextViewModel textVm, Thickness padding)
+        private static void DrawBackground(DrawingContext drawingContext, FileViewModel textVm, Thickness padding)
         {
             drawingContext.DrawRectangle(
                 TextView.BackgroundColor,
@@ -88,9 +88,9 @@ namespace Editor.View
             );
         }
 
-        public static void DrawGlyphRun(DrawingContext drawingContext, GlyphRunViewModel glyphRunVm)
+        public static void DrawGlyphRun(DrawingContext drawingContext, GlyphRunViewModel? glyphRunVm)
         {
-            if (glyphRunVm.GlyphRun != null)
+            if (glyphRunVm != null && glyphRunVm.GlyphRun != null)
             {
                 if (glyphRunVm.Width != null)
                 {
@@ -102,8 +102,13 @@ namespace Editor.View
             }
         }
 
-        private static void DrawCustomChars(DrawingContext drawingContext, CustomCharViewModel customCharVm)
+        private static void DrawCustomChars(DrawingContext drawingContext, CustomCharViewModel? customCharVm)
         {
+            if (customCharVm == null)
+            {
+                return;
+            }
+
             foreach (CharacterViewModel ch in customCharVm)
             {
                 drawingContext.DrawRoundedRectangle(
@@ -190,16 +195,16 @@ namespace Editor.View
             //return new Point(position.X - spacing.Left, position.Y - spacing.Top);
         }
 
-        private void MouseWheel(object sender, MouseWheelEventArgs e)
+        private void Text_MouseWheel(object sender, MouseWheelEventArgs e)
         {
             int scrollIncrement = this.ViewModel?.Settings?.ScrollIncrement ?? 4;
             if (e.Delta > 0)
             {
-                this.ViewModel.HandleMouseWheel(-scrollIncrement);
+                this.ViewModel?.HandleMouseWheel(-scrollIncrement);
             }
             else if (e.Delta < 0)
             {
-                this.ViewModel.HandleMouseWheel(scrollIncrement);
+                this.ViewModel?.HandleMouseWheel(scrollIncrement);
             }
             
         }

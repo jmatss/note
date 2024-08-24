@@ -34,11 +34,10 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <Grid Grid.ColumnSpan="2" Background="#191919">
+            <Grid Background="#191919">
                 <!-- https://engy.us/blog/2020/01/01/implementing-a-custom-window-title-bar-in-wpf/ -->
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -54,7 +53,7 @@
                         </Style>
                     </Menu.Resources>
                     <MenuItem Header="File" Foreground="#bbbbbb">
-                        <MenuItem Header="Open"/>
+                        <MenuItem Header="Open" Click="MenuItem_Open_Click"/>
                     </MenuItem>
                     <MenuItem Header="Edit" Foreground="#bbbbbb">
                         <MenuItem Header=""/>
@@ -67,10 +66,7 @@
                 </Menu>
             </Grid>
 
-            <view:LineNumbersView Grid.Row="1" DataContext="{Binding TextViewModel}" MinWidth="36" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"/>
-            <Border Grid.Row="1" Grid.Column="1" BorderThickness="1,1,0,0" BorderBrush="#282828">
-                <view:TextView DataContext="{Binding TextViewModel}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"/>
-            </Border>
+            <ContentControl Grid.Row="1" Content="{Binding FileViewModel}"/>
         </Grid>
     </Border>
 </Window>

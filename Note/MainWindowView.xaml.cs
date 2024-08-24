@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using Microsoft.Win32;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using static Editor.HandleInput;
@@ -38,11 +39,11 @@ namespace Note
                 case Key.Enter:
                 case Key.LineFeed:
                 case Key.Tab:
-                    this.ViewModel.TextViewModel?.HandleSpecialKeys(key, modifiers);
+                    this.ViewModel.FileViewModel?.HandleSpecialKeys(key, modifiers);
                     break;
 
                 case Key.C when modifiers.Ctrl:
-                    string? copyText = this.ViewModel.TextViewModel?.Read();
+                    string? copyText = this.ViewModel.FileViewModel?.Read();
                     if (!string.IsNullOrEmpty(copyText))
                     {
                         Clipboard.SetText(copyText);
@@ -51,15 +52,15 @@ namespace Note
 
                 case Key.V when modifiers.Ctrl:
                     string pasteText = Clipboard.GetText();
-                    this.ViewModel.TextViewModel?.Write(pasteText);
+                    this.ViewModel.FileViewModel?.Write(pasteText);
                     break;
 
                 case Key.X when modifiers.Ctrl:
-                    string? cutText = this.ViewModel.TextViewModel?.Read();
+                    string? cutText = this.ViewModel.FileViewModel?.Read();
                     if (!string.IsNullOrEmpty(cutText))
                     {
                         Clipboard.SetText(cutText);
-                        this.ViewModel.TextViewModel?.Write(string.Empty);
+                        this.ViewModel.FileViewModel?.Write(string.Empty);
                     }
                     break;
 
@@ -76,7 +77,16 @@ namespace Note
 
             if (!string.IsNullOrEmpty(text) && !char.IsControl(text.First()))
             {
-                this.ViewModel.TextViewModel?.HandlePrintableKeys(e.Text);
+                this.ViewModel.FileViewModel?.HandlePrintableKeys(e.Text);
+            }
+        }
+
+        private void MenuItem_Open_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog();
+            if (dialog.ShowDialog() ?? false)
+            {
+                this.ViewModel.Load(dialog.FileName);
             }
         }
     }
