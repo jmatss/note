@@ -1,68 +1,31 @@
-﻿using System.Windows;
-using System.ComponentModel;
-using System.Windows.Shapes;
-using Note.Rope;
+﻿using Note.Rope;
 using Editor.Range;
+using System.Windows.Media;
 
 namespace Editor.ViewModel
 {
-    public class CursorViewModel : IDrawable, INotifyPropertyChanged
+    public class CursorViewModel
     {
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        private void OnPropertyChanged(string propertyName)
-        {
-            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
         public CursorViewModel(double x, double y, double width, double height, Settings settings)
         {
             this.X = x;
             this.Y = y;
             this.width = width;
             this.height = height;
-
-            this.Draw(settings);
+            this.Brush = settings.SelectionCursorColor;
         }
 
         public double X { get; }
 
         public double Y { get; }
 
-        private double width;
+        private readonly double width;
         public double Width => double.Round(this.width);
 
-        private double height;
+        private readonly double height;
         public double Height => double.Round(this.height);
 
-        public Thickness PositionCursor => new Thickness(double.Round(this.X), double.Round(this.Y), 0, 0);
-
-        public Thickness PositionLineBackground => new Thickness(0, double.Round(this.Y), 0, 0);
-
-        private UIElement element;
-        public UIElement Element
-        {
-            get => this.element;
-            set
-            {
-                this.element = value;
-                this.OnPropertyChanged(nameof(this.Element));
-            }
-        }
-
-        public void Draw(Settings settings)
-        {
-            Rectangle rectangle = new Rectangle()
-            {
-                Width = this.Width,
-                Height = this.Height,
-                Fill = settings.SelectionCursorColor,
-                VerticalAlignment = VerticalAlignment.Top,
-                HorizontalAlignment = HorizontalAlignment.Left,
-            };
-
-            this.Element = rectangle;
-        }
+        public Brush Brush { get; }
 
         public static IEnumerable<CursorViewModel> CalculateCursors(
             Rope rope,

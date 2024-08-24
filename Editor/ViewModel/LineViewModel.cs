@@ -46,8 +46,7 @@ namespace Editor.ViewModel
                     viewHeight,
                     viewStartCharIdx,
                     charDrawWidth,
-                    charDrawHeight,
-                    settings
+                    charDrawHeight
                 );
 
                 int maxLineCountInView = (int)Math.Floor(viewHeight / charDrawHeight);
@@ -61,8 +60,7 @@ namespace Editor.ViewModel
                         viewHeight,
                         cursorIdxToBringIntoView.Value,
                         charDrawWidth,
-                        charDrawHeight,
-                        settings
+                        charDrawHeight
                     );
                 }
                 else if (cursorIdxToBringIntoView != null &&
@@ -77,8 +75,7 @@ namespace Editor.ViewModel
                         viewHeight,
                         cursorIdxToBringIntoView.Value,
                         charDrawWidth,
-                        charDrawHeight,
-                        settings
+                        charDrawHeight
                     );
                 }
 
@@ -102,8 +99,7 @@ namespace Editor.ViewModel
             double viewHeight,
             int viewStartCharIdx,
             double charDrawWidth,
-            double charDrawHeight,
-            Settings settings
+            double charDrawHeight
         )
         {
             List<LineViewModel> lines = [];
@@ -122,8 +118,7 @@ namespace Editor.ViewModel
                     currentCharIdx,
                     curLocationY,
                     charDrawWidth,
-                    charDrawHeight,
-                    settings
+                    charDrawHeight
                 );
 
                 foreach (LineViewModel lineViewModel in lineViewModels)
@@ -162,8 +157,7 @@ namespace Editor.ViewModel
             double viewHeight,
             int viewEndCharIdx,
             double charDrawWidth,
-            double charDrawHeight,
-            Settings settings
+            double charDrawHeight
         )
         {
             List<LineViewModel> lines = [];
@@ -183,8 +177,7 @@ namespace Editor.ViewModel
                     viewWidth,
                     currentCharIdx,
                     charDrawWidth,
-                    charDrawHeight,
-                    settings
+                    charDrawHeight
                 );
 
                 foreach (LineViewModel lineViewModel in lineViewModels.Reverse())
@@ -296,19 +289,13 @@ namespace Editor.ViewModel
             double viewWidth,
             int charEndIndex,
             double charDrawWidth,
-            double charDrawHeight,
-            Settings settings
+            double charDrawHeight
         )
         {
             rope.ValidateTree();
 
             int lineIdx = rope.GetLineIndexForCharAtIndex(charEndIndex);
             int firstCharIdxAtLine = rope.GetFirstCharIndexAtLineWithIndex(lineIdx);
-            int firstCharIdxAtNextLine = rope.GetFirstCharIndexAtLineWithIndex(lineIdx + 1);
-            if (firstCharIdxAtNextLine == -1)
-            {
-                firstCharIdxAtNextLine = rope.GetTotalCharCount();
-            }
             int currentCharIdx = firstCharIdxAtLine;
 
             double startLocationX = 0.0;
@@ -327,8 +314,7 @@ namespace Editor.ViewModel
                     curLocationY,
                     viewWidth,
                     charDrawWidth,
-                    charDrawHeight,
-                    settings
+                    charDrawHeight
                 );
 
                 // NOTE: The y-position is set to -1. This is because we don't know the position
@@ -344,14 +330,116 @@ namespace Editor.ViewModel
             return lines;
         }
 
+        public static int CharIdxAfterScrollDownwardsWithWordWrap(
+            Rope rope,
+            double viewWidth,
+            int charIdx,
+            double charDrawWidth,
+            double charDrawHeight,
+            int scrollDelta
+        )
+        {
+            scrollDelta = int.Abs(scrollDelta);
+
+            int newCharIdx = -1;
+            int lastCharIdx = rope.GetTotalCharCount();
+            lastCharIdx = lastCharIdx > 0 ? lastCharIdx - 1 : 0;
+            bool lastCharIsLineBreak = rope.IterateChars(lastCharIdx).First().Item1 == LineViewModel.LINE_BREAK;
+            lastCharIdx = lastCharIsLineBreak ? lastCharIdx + 1 : lastCharIdx;
+
+            while (scrollDelta > 0 && charIdx <= lastCharIdx)
+            {
+                List<LineViewModel> lines = CalculateVirtualLinesWithWordWrapMiddleToBottom(
+                    rope,
+                    viewWidth,
+                    charIdx,
+                    0.0,
+                    charDrawWidth,
+                    charDrawHeight
+                );
+
+                if (lines.Count >= scrollDelta)
+                {
+                    newCharIdx = lines[scrollDelta - 1].StartCharIdx;
+                    break;
+                }
+                else if (lines.Count == 0)
+                {
+                    break;
+                }
+                else
+                {
+                    scrollDelta -= lines.Count;
+                    charIdx = lines.Last().EndCharIdx + 1;
+                }
+            }
+
+            return newCharIdx != -1 ? newCharIdx : lastCharIdx;
+        }
+
+        public static int CharIdxAfterScrollUpwardsWithWordWrap(
+            Rope rope,
+            double viewWidth,
+            int charIdx,
+            double charDrawWidth,
+            double charDrawHeight,
+            int scrollDelta
+        )
+        {
+            scrollDelta = int.Abs(scrollDelta);
+
+            int newCharIdx = -1;
+
+            while (scrollDelta > 0 && charIdx >= 0)
+            {
+                List<LineViewModel> lines = CalculateVirtualLinesWithWordWrapTopToMiddle(
+                    rope,
+                    viewWidth,
+                    charIdx,
+                    charDrawWidth,
+                    charDrawHeight
+                );
+
+                if (lines.Count >= scrollDelta)
+                {
+                    newCharIdx = lines[lines.Count - scrollDelta].StartCharIdx;
+                    break;
+                }
+                else if (lines.Count == 0)
+                {
+                    break;
+                }
+                else
+                {
+                    scrollDelta -= lines.Count;
+                }
+
+                int? nextCharIdx = (lines.FirstOrDefault()?.StartCharIdx - 1);
+                if (nextCharIdx.HasValue)
+                {
+                    charIdx = nextCharIdx.Value;
+                }
+                else if (charIdx == 0)
+                {
+                    charIdx = -1;
+                }
+                else
+                {
+                    int lineIdx = rope.GetLineIndexForCharAtIndex(charIdx - 1);
+                    charIdx = rope.GetFirstCharIndexAtLineWithIndex(lineIdx);
+                }
+            }
+
+            return newCharIdx != -1 ? newCharIdx : 0;
+        }
+
         private static List<LineViewModel> CalculateVirtualLinesWithWordWrapMiddleToBottom(
             Rope rope,
             double viewWidth,
             int charStartIndex,
             double locationY,
             double charDrawWidth,
-            double charDrawHeight,
-            Settings settings
+            double charDrawHeight
         )
         {
             rope.ValidateTree();
@@ -381,8 +469,7 @@ namespace Editor.ViewModel
                     curLocationY,
                     viewWidth,
                     charDrawWidth,
-                    charDrawHeight,
-                    settings
+                    charDrawHeight
                 );
 
                 if (currentCharIdx > charStartIndex)
@@ -422,8 +509,7 @@ namespace Editor.ViewModel
             double locationY,
             double viewMaxWidth,
             double charDrawWidth,
-            double charDrawHeight,
-            Settings settings
+            double charDrawHeight
         )
         {
             LineViewModel lineViewModel = new LineViewModel();
@@ -461,8 +547,7 @@ namespace Editor.ViewModel
                     charDrawWidth,
                     charDrawHeight,
                     currentCharIdx,
-                    text,
-                    settings
+                    text
                 ));
 
                 currentCharIdx += isSurrogatePair ? 2 : 1;

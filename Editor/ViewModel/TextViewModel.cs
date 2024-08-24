@@ -1,7 +1,5 @@
 ﻿using Editor.Range;
 using Note.Rope;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
@@ -12,11 +10,8 @@ using static Editor.HandleInput;
 
 namespace Editor.ViewModel
 {
-    public class TextViewModel : INotifyPropertyChanged
+    public class TextViewModel
     {
-        public event PropertyChangedEventHandler? PropertyChanged;
-        private void OnPropertyChanged(string propertyName) => this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-
         // TODO: Get this value in cleaner way
         private readonly double pixelsPerDip = VisualTreeHelper.GetDpi(new Button()).PixelsPerDip;
 
@@ -31,57 +26,19 @@ namespace Editor.ViewModel
 
         public Settings Settings { get; }
 
-        public bool IsLeftClickHeld { get; set; } = false;
+        public List<LineViewModel> Lines { get; } = new List<LineViewModel>();
 
-        public ObservableCollection<LineViewModel> Lines { get; } = new ObservableCollection<LineViewModel>();
+        public GlyphRunViewModel Text { get; set; }
 
-        private GlyphRunViewModel text;
-        public GlyphRunViewModel Text
-        {
-            get => this.text;
-            set
-            {
-                this.text = value;
-                this.OnPropertyChanged(nameof(this.Text));
-            }
-        }
+        public GlyphRunViewModel LineNumbers { get; set; }
 
-        private GlyphRunViewModel lineNumbers;
-        public GlyphRunViewModel LineNumbers
-        {
-            get => this.lineNumbers;
-            set
-            {
-                this.lineNumbers = value;
-                this.OnPropertyChanged(nameof(this.LineNumbers));
-            }
-        }
+        public GlyphRunViewModel CustomCharWhitespace { get; set; }
 
-        private CustomCharWhitespaceViewModel customCharWhitespace;
-        public CustomCharWhitespaceViewModel CustomCharWhitespace
-        {
-            get => this.customCharWhitespace;
-            set
-            {
-                this.customCharWhitespace = value;
-                this.OnPropertyChanged(nameof(this.CustomCharWhitespace));
-            }
-        }
+        public CustomCharViewModel CustomChars { get; set; }
 
-        private CustomCharViewModel customChars;
-        public CustomCharViewModel CustomChars
-        {
-            get => this.customChars;
-            set
-            {
-                this.customChars = value;
-                this.OnPropertyChanged(nameof(this.CustomChars));
-            }
-        }
+        public List<SelectionViewModel> Selections { get; } = new List<SelectionViewModel>();
 
-        public ObservableCollection<SelectionViewModel> Selections { get; } = new ObservableCollection<SelectionViewModel>();
-
-        public ObservableCollection<CursorViewModel> Cursors { get; } = new ObservableCollection<CursorViewModel>();
+        public List<CursorViewModel> Cursors { get; } = new List<CursorViewModel>();
 
         private double viewWidth;
         public double ViewWidth
@@ -113,7 +70,11 @@ namespace Editor.ViewModel
 
         public GlyphTypeface GlyphTypeFace { get; private set; }
 
-        public List<SelectionRange> SelectionRanges { get; } = new List<SelectionRange>();       
+        public List<SelectionRange> SelectionRanges { get; } = new List<SelectionRange>();
+
+        public Action? OnDraw { get; set; }
+
+        public Action? OnDrawSelections { get; set; }
 
         public void HandlePrintableKeys(string text)
         {
@@ -166,7 +127,21 @@ namespace Editor.ViewModel
                 this.UpdateSelection(selection, new SelectionRange(newCursorCharIndex));
             }
 
-            this.RecalculateSelections();
+            this.RecalculateSelections(true);
+        }
+
+        public void HandleTextMouseLeftDoubleClick(Point position)
+        {
+            int newCursorCharIndex = HandleInput.HandleTextLeftMouseClick(this.Rope, this.Lines, position);
+
+            bool skipEndWhitespaces = false;
+            int startIdx = this.Rope.GetCurrentWordStartIndex(newCursorCharIndex, skipEndWhitespaces);
+            int endIdx = this.Rope.GetNextWordStartIndex(newCursorCharIndex, skipEndWhitespaces);
+
+            SelectionRange selection = this.ResetSelections();
+            this.UpdateSelection(selection, new SelectionRange(startIdx, endIdx, InsertionPosition.End));
+
+            this.RecalculateSelections(true);
         }
 
         public void HandleTextMouseLeftMove(Point position)
@@ -186,8 +161,21 @@ namespace Editor.ViewModel
 
                 if (!object.Equals(selection, newSelection))
                 {
+                    Trace.WriteLine("newSelection: " + newSelection);
                     this.UpdateSelection(selection, newSelection);
-                    this.Recalculate(true);
+                    // TODO: Implement check to see if above/below to see if the whole view
+                    //       (including text etc.) should be updated. Otherwise just make the
+                    //       faster operation of updating selections only.
+                    int oldStartIndex = this.Lines.FirstOrDefault()?.StartCharIdx ?? 0;
+                    int oldEndIndex = this.Lines.LastOrDefault()?.EndCharIdx ?? this.Rope.GetTotalCharCount();
+                    if (selection.Start < oldStartIndex || selection.End > oldEndIndex)
+                    {
+                        this.Recalculate(true);
+                    }
+                    else
+                    {
+                        this.RecalculateSelections(true);
+                    }
                 }
             }
         }
@@ -202,13 +190,14 @@ namespace Editor.ViewModel
                 int lastCharIdx = this.Rope.GetFirstCharIndexAtLineWithIndex(clickedLineIndex + 1);
                 lastCharIdx = lastCharIdx == -1 ? this.Rope.GetTotalCharCount() : lastCharIdx;
                 this.UpdateSelection(selection, new SelectionRange(firstCharIdx, lastCharIdx, InsertionPosition.End));
-                this.RecalculateSelections();
+
+                this.RecalculateSelections(true);
             }
         }
 
         public void HandleMouseWheel(int scrollDelta)
         {
-            this.Recalculate(true, scrollDelta);
+            this.Recalculate(false, scrollDelta);
         }
 
         public string? Read()
@@ -288,7 +277,7 @@ namespace Editor.ViewModel
             return new SelectionRange(rangeToReplace.Start + text.Length);
         }
 
-        private void Recalculate(bool bringCursorIntoView, int scrollDelta = 0)
+        public void Recalculate(bool bringCursorIntoView, int scrollDelta = 0)
         {
             if (this.ViewWidth <= 0.0 || this.ViewHeight <= 0.0)
             {
@@ -297,26 +286,50 @@ namespace Editor.ViewModel
 
             (double charDrawWidth, double charDrawHeight) = TextViewModel.CharacterDrawSize(this.Settings, this.pixelsPerDip);
 
-            this.RecalculateLines(charDrawWidth, charDrawHeight, bringCursorIntoView);
+            this.RecalculateLines(charDrawWidth, charDrawHeight, bringCursorIntoView, scrollDelta);
 
             this.RecalculateText();
             this.RecalculateLineNumbers(charDrawWidth, charDrawHeight);
 
-            this.RecalculateSelections();
+            this.RecalculateSelections(false);
+
+            this.OnDraw?.Invoke();
         }
 
-        private void RecalculateLines(double charDrawWidth, double charDrawHeight, bool bringCursorIntoView)
+        private void RecalculateLines(double charDrawWidth, double charDrawHeight, bool bringCursorIntoView, int scrollDelta)
         {
-            int? cursorIdxToBringIntoView = null;
-            if (bringCursorIntoView)
-            {
-                cursorIdxToBringIntoView = this.SelectionRanges.FirstOrDefault()?.InsertionPositionIndex ?? 0;
-            }
-
             int totalCharCount = this.Rope.GetTotalCharCount();
             int lastCharIdx = totalCharCount > 0 ? totalCharCount - 1 : 0;
             int viewStartCharIdx = this.Lines.FirstOrDefault()?.StartCharIdx ?? lastCharIdx;
             viewStartCharIdx = int.Clamp(viewStartCharIdx, 0, lastCharIdx);
+
+            int? charIdxToBringIntoView = null;
+            if (bringCursorIntoView)
+            {
+                charIdxToBringIntoView = this.SelectionRanges.FirstOrDefault()?.InsertionPositionIndex ?? 0;
+            }
+            else if (scrollDelta > 0)
+            {
+                viewStartCharIdx = LineViewModel.CharIdxAfterScrollDownwardsWithWordWrap(
+                    this.Rope,
+                    this.ViewWidth,
+                    viewStartCharIdx,
+                    charDrawWidth,
+                    charDrawHeight,
+                    scrollDelta
+                );
+            }
+            else if (scrollDelta < 0)
+            {
+                viewStartCharIdx = LineViewModel.CharIdxAfterScrollUpwardsWithWordWrap(
+                    this.Rope,
+                    this.ViewWidth,
+                    viewStartCharIdx,
+                    charDrawWidth,
+                    charDrawHeight,
+                    scrollDelta
+                );
+            }
 
             var lines = LineViewModel.CalculateLines(
                 this.Rope,
@@ -326,7 +339,7 @@ namespace Editor.ViewModel
                 charDrawWidth,
                 charDrawHeight,
                 this.Settings,
-                cursorIdxToBringIntoView
+                charIdxToBringIntoView
             );
             this.Lines.Clear();
             foreach (LineViewModel line in lines)
@@ -377,10 +390,12 @@ namespace Editor.ViewModel
                 whitespaces = Enumerable.Empty<CharacterViewModel>();
             }
 
-            this.CustomCharWhitespace = new CustomCharWhitespaceViewModel(
-                this.Settings.TextColorCustomChar,
-                whitespaces
+            GlyphRun? whitespacesGlyphRun = GlyphRunViewModel.CharsToGlyphRun(
+                whitespaces,
+                this.Settings,
+                (float)this.pixelsPerDip
             );
+            this.CustomCharWhitespace = new GlyphRunViewModel(whitespacesGlyphRun, this.Settings.TextColorCustomChar, whitespaces);
 
             IEnumerable<CharacterViewModel> custom;
             if (this.Settings.DrawCustomChars)
@@ -400,7 +415,7 @@ namespace Editor.ViewModel
             );
         }
 
-        private void RecalculateSelections()
+        private void RecalculateSelections(bool redraw)
         {
             var selections = SelectionViewModel.CalculateSelections(
                 this.Lines,
@@ -423,6 +438,11 @@ namespace Editor.ViewModel
             foreach (CursorViewModel cursor in cursors)
             {
                 this.Cursors.Add(cursor);
+            }
+
+            if (redraw)
+            {
+                this.OnDrawSelections?.Invoke();
             }
         }
 

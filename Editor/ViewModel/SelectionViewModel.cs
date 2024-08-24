@@ -1,63 +1,30 @@
-﻿using System.Windows;
-using System.ComponentModel;
-using System.Windows.Shapes;
-using Editor.Range;
+﻿using Editor.Range;
+using System.Windows.Media;
 
 namespace Editor.ViewModel
 {
-    public class SelectionViewModel : IDrawable, INotifyPropertyChanged
+    public class SelectionViewModel
     {
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        private void OnPropertyChanged(string propertyName)
-        {
-            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
         public SelectionViewModel(double x, double y, double width, double height, Settings settings)
         {
             this.X = x;
             this.Y = y;
-            this.Width = width;
-            this.Height = height;
-
-            this.Draw(settings);
+            this.width = width;
+            this.height = height;
+            this.Brush = settings.SelectionBackgroundColor;
         }
 
         public double X { get; }
 
         public double Y { get; }
 
-        public double Width { get; }
+        private readonly double width;
+        public double Width => double.Round(this.width);
 
-        public double Height { get; }
+        private readonly double height;
+        public double Height => double.Round(this.height);
 
-        public Thickness Position => new Thickness(this.X, this.Y, 0, 0);
-
-        private UIElement element;
-        public UIElement Element
-        {
-            get => this.element;
-            set
-            {
-                this.element = value;
-                this.OnPropertyChanged(nameof(this.Element));
-            }
-        }
-
-        public void Draw(Settings settings)
-        {
-            Rectangle rectangle = new Rectangle()
-            {
-                Width = this.Width,
-                Height = this.Height,
-                Fill = settings.SelectionBackgroundColor,
-                VerticalAlignment = VerticalAlignment.Top,
-                HorizontalAlignment = HorizontalAlignment.Left,
-            };
-
-            this.Element = rectangle;
-        }
+        public Brush Brush { get; }
 
         public static IEnumerable<SelectionViewModel> CalculateSelections(
             IEnumerable<LineViewModel> lines,

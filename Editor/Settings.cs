@@ -64,11 +64,11 @@ namespace Editor
 
         public bool WordWrap { get; set; } = true;
 
-        public bool UseUnixLineBreaks { get; set; } = true;
+        public bool UseUnixLineBreaks { get; set; } = false;
 
         public string TabString { get; set; } = "  ";
 
-        public int ScrollIncrement { get; set; } = 3;
+        public int ScrollIncrement { get; set; } = 4;
 
         public void Todo_Freeze()
         {

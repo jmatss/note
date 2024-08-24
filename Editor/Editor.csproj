@@ -11,10 +11,4 @@
     <ProjectReference Include="..\Rope\Rope.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Update="View\CustomCharView.xaml.cs">
-      <SubType>Code</SubType>
-    </Compile>
-  </ItemGroup>
-
 </Project>

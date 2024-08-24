@@ -7,101 +7,20 @@
              xmlns:vm="clr-namespace:Editor.ViewModel"
              xmlns:editor="clr-namespace:Editor"
              mc:Ignorable="d"
+             DataContextChanged="UserControl_DataContextChanged"
              d:DesignHeight="450" d:DesignWidth="800">
     <UserControl.Resources>
-        <DataTemplate DataType="{x:Type vm:CustomCharViewModel}">
-            <local:CustomCharView/>
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type vm:CustomCharWhitespaceViewModel}">
-            <local:CustomCharWhitespaceView/>
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type vm:GlyphRunViewModel}">
-            <local:GlyphRunView/>
-        </DataTemplate>
-
-        <Thickness x:Key="TextSpacing" Left="6" Top="2" Right="6" Bottom="2"/>
-        <Thickness x:Key="LineNumbersSpacing" Left="10" Top="2" Right="10" Bottom="2"/>
-        <Thickness x:Key="TextSpacingTopBottom" Left="-6" Top="0" Right="-6" Bottom="0"/>
-
+        <!--
         <Storyboard x:Key="CursorBlinking">
             <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Duration="0:0:1.2" RepeatBehavior="Forever">
                 <DiscreteDoubleKeyFrame Value="0" KeyTime="0:0:0.6"/>
                 <DiscreteDoubleKeyFrame Value="1" KeyTime="0:0:1.2"/>
             </DoubleAnimationUsingKeyFrames>
         </Storyboard>
+        -->
     </UserControl.Resources>
-    
-    <Grid MouseWheel="MouseWheel">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="1"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
 
-        <Border Grid.Column="0" Background="#252525" MouseLeftButtonDown="LineNumbers_MouseLeftButtonDown">
-            <ContentControl Content="{Binding LineNumbers}" Margin="{StaticResource LineNumbersSpacing}"/>
-        </Border>
-
-        <Rectangle Grid.Column="1" Fill="#555"/>
-
-        <Border Grid.Column="2" Background="#1f1f1f" MouseLeftButtonDown="Text_MouseLeftButtonDown" MouseLeftButtonUp="Text_MouseLeftButtonUp" MouseMove="Text_MouseMove" Padding="{StaticResource TextSpacing}">
-            <Grid>
-                <ItemsControl ItemsSource="{Binding Cursors}" Margin="{StaticResource TextSpacingTopBottom}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <Grid/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vm:CursorViewModel}">
-                            <Grid>
-                                <Rectangle Height="{Binding Height}" Margin="{Binding PositionLineBackground}" HorizontalAlignment="Stretch" VerticalAlignment="Top" Fill="#fff" Opacity="0.05"/>
-                            </Grid>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <ItemsControl ItemsSource="{Binding Selections}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <Grid/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vm:SelectionViewModel}">
-                            <ContentControl Content="{Binding Element}" Margin="{Binding Position}"/>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <ItemsControl ItemsSource="{Binding Cursors}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <Grid/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vm:CursorViewModel}">
-                            <ContentControl Content="{Binding Element}" Margin="{Binding PositionCursor}">
-                                <ContentControl.Triggers>
-                                    <EventTrigger RoutedEvent="Loaded">
-                                        <BeginStoryboard Storyboard="{StaticResource CursorBlinking}"/>
-                                    </EventTrigger>
-                                </ContentControl.Triggers>
-                            </ContentControl>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <ContentControl Content="{Binding CustomCharWhitespace}"/>
-
-                <ContentControl Content="{Binding CustomChars}"/>
-
-                <ContentControl x:Name="TextCanvas" Content="{Binding Text}" editor:SizeObserver.Observe="True" editor:SizeObserver.ObservedWidth="{Binding ViewWidth, Mode=OneWayToSource}" editor:SizeObserver.ObservedHeight="{Binding ViewHeight, Mode=OneWayToSource}"/>
-            </Grid>
-        </Border>
-    </Grid>
+    <Border Padding="{x:Static local:TextView.TextSpacing}">
+        <Border Grid.Column="2" Background="Transparent" MouseLeftButtonDown="Text_MouseLeftButtonDown" MouseLeftButtonUp="Text_MouseLeftButtonUp" MouseMove="Text_MouseMove" MouseWheel="MouseWheel" editor:SizeObserver.Observe="True" editor:SizeObserver.ObservedWidth="{Binding ViewWidth, Mode=OneWayToSource}" editor:SizeObserver.ObservedHeight="{Binding ViewHeight, Mode=OneWayToSource}"/>
+    </Border>
 </UserControl>
