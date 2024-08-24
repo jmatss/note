@@ -1,27 +1,19 @@
-﻿using Editor;
-using Editor.ViewModel;
-using System.Diagnostics;
-using System.Text;
+﻿using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using static Editor.HandleInput;
 
 namespace Note
 {
-    public partial class MainWindow : Window
+    public partial class MainWindowView : Window
     {
-        public MainWindow()
+        public MainWindowView(MainWindowViewModel viewModel)
         {
-            this.DataContext = this;
-
-            Rope.Rope rope = Rope.Rope.FromString("Test text, abc123!\nA second line!\r\nThe third one ö\n", Encoding.UTF8);
-            this.TextViewModel = new TextViewModel(rope, new Settings());
-            this.TextViewModel.Settings.Todo_Freeze();
-
+            base.DataContext = viewModel;
             InitializeComponent();
         }
 
-        public TextViewModel TextViewModel { get; set; }
+        public MainWindowViewModel ViewModel => (MainWindowViewModel)base.DataContext;
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
@@ -46,11 +38,11 @@ namespace Note
                 case Key.Enter:
                 case Key.LineFeed:
                 case Key.Tab:
-                    this.TextViewModel.HandleSpecialKeys(key, modifiers);
+                    this.ViewModel.TextViewModel?.HandleSpecialKeys(key, modifiers);
                     break;
 
                 case Key.C when modifiers.Ctrl:
-                    string? copyText = this.TextViewModel.Read();
+                    string? copyText = this.ViewModel.TextViewModel?.Read();
                     if (!string.IsNullOrEmpty(copyText))
                     {
                         Clipboard.SetText(copyText);
@@ -59,15 +51,15 @@ namespace Note
 
                 case Key.V when modifiers.Ctrl:
                     string pasteText = Clipboard.GetText();
-                    this.TextViewModel.Write(pasteText);
+                    this.ViewModel.TextViewModel?.Write(pasteText);
                     break;
 
                 case Key.X when modifiers.Ctrl:
-                    string? cutText = this.TextViewModel.Read();
+                    string? cutText = this.ViewModel.TextViewModel?.Read();
                     if (!string.IsNullOrEmpty(cutText))
                     {
                         Clipboard.SetText(cutText);
-                        this.TextViewModel.Write(string.Empty);
+                        this.ViewModel.TextViewModel?.Write(string.Empty);
                     }
                     break;
 
@@ -84,7 +76,7 @@ namespace Note
 
             if (!string.IsNullOrEmpty(text) && !char.IsControl(text.First()))
             {
-                this.TextViewModel.HandlePrintableKeys(e.Text);
+                this.ViewModel.TextViewModel?.HandlePrintableKeys(e.Text);
             }
         }
     }
