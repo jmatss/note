@@ -1,4 +1,5 @@
 ﻿using Editor.Range;
+using Editor.View;
 using Note.Rope;
 using System.Diagnostics;
 using System.Globalization;
@@ -48,7 +49,7 @@ namespace Editor.ViewModel
                 if (value != this.viewWidth)
                 {
                     this.viewWidth = value;
-                    this.Recalculate(true);
+                    this.Recalculate(false);
                 }
             }
         }
@@ -62,7 +63,7 @@ namespace Editor.ViewModel
                 if (value != this.viewHeight)
                 {
                     this.viewHeight = value;
-                    this.Recalculate(true);
+                    this.Recalculate(false);
                 }
             }
         }
@@ -71,7 +72,7 @@ namespace Editor.ViewModel
 
         public List<SelectionRange> SelectionRanges { get; } = new List<SelectionRange>();
 
-        public Action? OnDraw { get; set; }
+        public Action<double, double>? OnDraw { get; set; }
 
         public Action? OnDrawSelections { get; set; }
 
@@ -201,9 +202,38 @@ namespace Editor.ViewModel
             }
         }
 
-        public void HandleMouseWheel(int scrollDelta)
+        public void HandleScroll(int scrollDelta)
         {
             this.Recalculate(false, scrollDelta);
+        }
+
+        public bool HandleScrollBarMouseLeftMove(Point position, Point prevPosition)
+        {
+            (_, double charDrawHeight) = FileViewModel.CharacterDrawSize(this.Settings, this.pixelsPerDip);
+
+            int possibleAmountOfLinesInView = (int)((this.ViewHeight) / charDrawHeight);
+            int allLines = this.Rope.GetTotalLineBreaks() + possibleAmountOfLinesInView;
+            allLines = allLines == 0 ? 1 : allLines;
+
+            double oneLineHeight = (this.ViewHeight - ScrollBarView.ArrowHeight * 2) / allLines;
+            int curLine = (int)Math.Floor(prevPosition.Y / oneLineHeight);
+            int newLine = (int)Math.Floor(position.Y / oneLineHeight);
+
+            Trace.WriteLine("cur: " + curLine + ", new: " + newLine + ", h: " + newLine + ", prevY: " + prevPosition.Y + ", curY: " + position.Y);
+
+            if (curLine != newLine)
+            {
+                int scrollDelta = newLine - curLine;
+                this.HandleScroll(scrollDelta);
+                return true;
+            }
+            else
+            {
+                // The previous pointer position and this new position refers to the same line.
+                // I.e. moving the scrollbar to this new position would NOT scroll to a new
+                // line, so no need to do anything here.
+                return false;
+            }
         }
 
         public string? Read()
@@ -299,7 +329,7 @@ namespace Editor.ViewModel
 
             this.RecalculateSelections(false);
 
-            this.OnDraw?.Invoke();
+            this.OnDraw?.Invoke(charDrawWidth, charDrawHeight);
         }
 
         private void RecalculateLines(double charDrawWidth, double charDrawHeight, bool bringCursorIntoView, int scrollDelta)

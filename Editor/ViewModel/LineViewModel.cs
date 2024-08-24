@@ -344,10 +344,10 @@ namespace Editor.ViewModel
             int newCharIdx = -1;
             int lastCharIdx = rope.GetTotalCharCount();
             lastCharIdx = lastCharIdx > 0 ? lastCharIdx - 1 : 0;
-            bool lastCharIsLineBreak = rope.IterateChars(lastCharIdx).First().Item1 == LineViewModel.LINE_BREAK;
+            bool lastCharIsLineBreak = rope.IterateChars(lastCharIdx).FirstOrDefault().Item1 == LineViewModel.LINE_BREAK;
             lastCharIdx = lastCharIsLineBreak ? lastCharIdx + 1 : lastCharIdx;
 
-            while (scrollDelta > 0 && charIdx <= lastCharIdx)
+            while (scrollDelta >= 0 && charIdx <= lastCharIdx)
             {
                 List<LineViewModel> lines = CalculateVirtualLinesWithWordWrapMiddleToBottom(
                     rope,
@@ -358,9 +358,9 @@ namespace Editor.ViewModel
                     charDrawHeight
                 );
 
-                if (lines.Count >= scrollDelta)
+                if (lines.Count > scrollDelta)
                 {
-                    newCharIdx = lines[scrollDelta - 1].StartCharIdx;
+                    newCharIdx = lines[scrollDelta].StartCharIdx;
                     break;
                 }
                 else if (lines.Count == 0)
@@ -390,7 +390,7 @@ namespace Editor.ViewModel
 
             int newCharIdx = -1;
 
-            while (scrollDelta > 0 && charIdx >= 0)
+            while (scrollDelta >= 0 && charIdx >= 0)
             {
                 List<LineViewModel> lines = CalculateVirtualLinesWithWordWrapTopToMiddle(
                     rope,
@@ -400,9 +400,9 @@ namespace Editor.ViewModel
                     charDrawHeight
                 );
 
-                if (lines.Count >= scrollDelta)
+                if (lines.Count > scrollDelta)
                 {
-                    newCharIdx = lines[lines.Count - scrollDelta].StartCharIdx;
+                    newCharIdx = lines[lines.Count - scrollDelta - 1].StartCharIdx;
                     break;
                 }
                 else if (lines.Count == 0)

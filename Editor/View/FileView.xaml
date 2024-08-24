@@ -10,10 +10,12 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
         <local:LineNumbersView DataContext="{Binding}" MinWidth="36" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"/>
-        <Border Grid.Column="1" BorderThickness="1,1,0,0" BorderBrush="#282828">
+        <Border Grid.Column="1" BorderThickness="1,1,1,0" BorderBrush="#282828">
             <local:TextView DataContext="{Binding}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"/>
         </Border>
+        <local:ScrollBarView Grid.Column="2" DataContext="{Binding}" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"/>
     </Grid>
 </UserControl>

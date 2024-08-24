@@ -34,7 +34,7 @@ namespace Editor.View
 
         private void LineNumbers_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            Point position = TextView.NormalizedPosition(sender, e, LineNumbersSpacing);
+            Point position = TextView.GetPosition(sender, e);
             this.ViewModel.HandleLineNumbersMouseLeftClick(position);
         }
 
@@ -44,7 +44,7 @@ namespace Editor.View
             drawingContext.DrawDrawing(drawingGroup);
         }
 
-        public void Draw()
+        public void Draw(double _charDrawWidth, double _charDrawHeight)
         {
             using (DrawingContext drawingContext = this.drawingGroup.Open())
             {

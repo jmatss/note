@@ -49,7 +49,7 @@ namespace Editor.View
             drawingContext.DrawDrawing(drawingGroupSelections);
         }
 
-        public void Draw()
+        public void Draw(double _charDrawWidth, double _charDrawHeight)
         {
             using (DrawingContext drawingContext = this.drawingGroupText.Open())
             {
@@ -160,7 +160,7 @@ namespace Editor.View
 
         private void Text_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            Point position = NormalizedPosition(sender, e, TextSpacing);
+            Point position = GetPosition(sender, e);
             if (e.ClickCount == 2)
             {
                 this.ViewModel.HandleTextMouseLeftDoubleClick(position);
@@ -182,29 +182,26 @@ namespace Editor.View
         {
             if (this.MouseIsCaptured)
             {
-                Point position = NormalizedPosition(sender, e, TextSpacing);
-                Trace.WriteLine("move - " + position);
+                Point position = GetPosition(sender, e);
                 this.ViewModel.HandleTextMouseLeftMove(position);
             }
         }
 
-        public static Point NormalizedPosition(object sender, MouseEventArgs e, Thickness spacing)
+        public static Point GetPosition(object sender, MouseEventArgs e)
         {
-            Point position = e.GetPosition(sender as IInputElement);
-            return position;
-            //return new Point(position.X - spacing.Left, position.Y - spacing.Top);
+            return e.GetPosition(sender as IInputElement);
         }
 
         private void Text_MouseWheel(object sender, MouseWheelEventArgs e)
         {
-            int scrollIncrement = this.ViewModel?.Settings?.ScrollIncrement ?? 4;
+            int scrollIncrement = this.ViewModel.Settings.ScrollIncrement;
             if (e.Delta > 0)
             {
-                this.ViewModel?.HandleMouseWheel(-scrollIncrement);
+                this.ViewModel.HandleScroll(-scrollIncrement);
             }
             else if (e.Delta < 0)
             {
-                this.ViewModel?.HandleMouseWheel(scrollIncrement);
+                this.ViewModel.HandleScroll(scrollIncrement);
             }
             
         }
