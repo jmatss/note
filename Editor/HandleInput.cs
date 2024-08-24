@@ -529,17 +529,11 @@ namespace Editor
 
         private static int GetInsertionCharIndexFromPosition(Rope rope, IEnumerable<LineViewModel> lines, double x, double y)
         {
-            // 1. Cursor is above left corner of text view
-            if (x < 0 && y < 0)
-            {
-                return 0;
-            }
-
             CharacterViewModel? ch = lines
                 .SelectMany(l => l.Where(c => (c as IGlyphRunCharacter).Contains(x, y)))
                 .FirstOrDefault();
 
-            // 2. The mouse cursor is directly at a character.
+            // 1. The mouse cursor is directly at a character.
             if (ch != null)
             {
                 return HitCharacterToCharIdx(rope, x, ch);
@@ -547,7 +541,7 @@ namespace Editor
 
             int totalCharCount = rope.GetTotalCharCount();
 
-            // 3. The cursors isn't directly at a character: See if we are before/after a specific line.
+            // 2. The cursors isn't directly at a character: See if we are left/right of a specific line.
             LineViewModel? line = lines.FirstOrDefault(l => y >= l.Y && y < l.Y + l.Height);
             if (line != null)
             {
@@ -572,43 +566,41 @@ namespace Editor
                 return charIdx;
             }
 
-            // 4. The cursors isn't directly at a character: See if we are above/below a specific column.
+            // 3. The cursor is located above or below the text. Se if we are above/below a specific column.
             LineViewModel? firstLine = lines.FirstOrDefault();
             LineViewModel? lastLine = lines.LastOrDefault();
             if (firstLine != null && firstLine.Count > 0 && y < 0)
             {
-                HitLineToCharIdx(rope, x, firstLine);
-            }
-            else if (lastLine != null && y > lastLine.Y + lastLine.Height)
-            {
-                HitLineToCharIdx(rope, x, lastLine);
-            }
-
-            // 5. Assume the cursors is located somewhere outside both x & y range of text.
-            //    We will return the character index for the characters in the corners.
-            if (x < 0 && y > 0)
-            {
-                char? c = lastLine?.LastOrDefault()?.FirstChar;
-                if (c != null && c == LineViewModel.LINE_BREAK)
+                if (firstLine.StartCharIdx > 0)
                 {
-                    return totalCharCount;
+                    // TODO: Currently takes the first character of line above.
+                    //       Implement so that it consideres the x-position of the click
+                    int firstLineIdx = rope.GetLineIndexForCharAtIndex(firstLine.StartCharIdx);
+                    return rope.GetFirstCharIndexAtLineWithIndex(firstLineIdx > 0 ? firstLineIdx - 1 : firstLineIdx);
                 }
                 else
                 {
-                    return lastLine?.FirstOrDefault()?.CharIdx ?? totalCharCount;
+                    return HitLineToCharIdx(rope, x, firstLine);
                 }
             }
-            else if (x > 0 && y > 0)
+            else if (lastLine != null && y > lastLine.Y + lastLine.Height)
             {
-                return totalCharCount;
-            }
-            else if (x > 0 && y < 0)
-            {
-                return firstLine?.LastOrDefault()?.CharIdx ?? 0;
+                if (lastLine.EndCharIdx + 1 < totalCharCount)
+                {
+                    // TODO: Currently takes the first character of line below.
+                    //       Implement so that it consideres the x-position of the click
+                    int lastLineIdx = rope.GetLineIndexForCharAtIndex(lastLine.StartCharIdx);
+                    int totalLineCount = rope.GetTotalLineBreaks() + 1;
+                    return rope.GetFirstCharIndexAtLineWithIndex(lastLineIdx + 1 < totalLineCount ? lastLineIdx + 1 : lastLineIdx);
+                }
+                else
+                {
+                    return HitLineToCharIdx(rope, x, lastLine);
+                }
             }
             else
             {
-                // Unknown, just return 0 as default
+                // No lines exists. Select 0 as default
                 return 0;
             }
         }
@@ -642,26 +634,35 @@ namespace Editor
                     .Where(c => (c as IGlyphRunCharacter).ContainsX(x))
                     .FirstOrDefault();
 
+            if (c == null && x > line.X + line.Width)
+            {
+                var lastChar = line.LastOrDefault();
+                if (lastChar != null)
+                {
+                    c = lastChar;
+                }
+                else
+                {
+                    int charCount = rope.GetTotalCharCount();
+                    int charIdx = line.EndCharIdx;
+
+                    if (charIdx > 0 && charIdx < charCount && rope.GetChar(charIdx) == LineViewModel.LINE_BREAK)
+                    {
+                        charIdx--;
+                    }
+
+                    if (charIdx > 0 && charIdx < charCount && rope.GetChar(charIdx) == LineViewModel.CARRIAGE_RETURN)
+                    {
+                        charIdx--;
+                    }
+
+                    return charIdx;
+                }
+            }
+
             if (c != null)
             {
                 return HitCharacterToCharIdx(rope, x, c);
-            }
-            else if (x > line.X + line.Width)
-            {
-                int charCount = rope.GetTotalCharCount();
-                int charIdx = line.EndCharIdx;
-
-                if (charIdx > 0 && charIdx < charCount && rope.GetChar(charIdx) == LineViewModel.LINE_BREAK)
-                {
-                    charIdx--;
-                }
-
-                if (charIdx > 0 && charIdx < charCount && rope.GetChar(charIdx) == LineViewModel.CARRIAGE_RETURN)
-                {
-                    charIdx--;
-                }
-
-                return charIdx;
             }
             else // Most likely scenario: (x < 0)
             {
