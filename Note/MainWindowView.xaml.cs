@@ -23,6 +23,8 @@ namespace Note
 
             Trace.WriteLine("Window_KeyDown - key: " + key + ", modifiers: " + modifiers);
 
+            bool isHandled = true;
+
             switch (key)
             {
                 case Key.A when modifiers.Ctrl:
@@ -65,8 +67,11 @@ namespace Note
                     break;
 
                 default:
+                    isHandled = false;
                     break;
             }
+
+            e.Handled = isHandled;
         }
 
         private void Window_TextInput(object sender, TextCompositionEventArgs e)
@@ -78,6 +83,7 @@ namespace Note
             if (!string.IsNullOrEmpty(text) && !char.IsControl(text.First()))
             {
                 this.ViewModel.FileViewModel?.HandlePrintableKeys(e.Text);
+                e.Handled = true;
             }
         }
 

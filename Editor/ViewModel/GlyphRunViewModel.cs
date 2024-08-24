@@ -78,8 +78,7 @@ namespace Editor.ViewModel
             CharacterViewModel? lastChar = lines.LastOrDefault(x => x is not EmptyLineViewModel)?.LastOrDefault();
             bool lastLineIsEmpty = lines.LastOrDefault() is EmptyLineViewModel;
 
-            int lastLineNumber = lastChar != null ? rope.GetLineIndexForCharAtIndex(lastChar.CharIdx) + 1 : 0;
-            lastLineNumber = lastLineIsEmpty ? lastLineNumber + 1 : lastLineNumber;
+            int lastLineNumber = rope.GetTotalLineBreaks() + 1;
             int maxLineNumberCharCount = lastLineNumber.ToString().Length;
 
             int prevLineNumber = -1;
