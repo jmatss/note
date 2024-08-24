@@ -282,7 +282,7 @@ namespace Editor.ViewModel
             return (formattedText.Width, formattedText.Height);
         }
 
-        private SelectionRange ResetSelections()
+        public SelectionRange ResetSelections()
         {
             this.SelectionRanges.Clear();
             SelectionRange selection = new SelectionRange(0);
@@ -482,50 +482,12 @@ namespace Editor.ViewModel
             }
         }
 
-        private void UpdateSelection(SelectionRange selectionToUpdate, SelectionRange newSelection)
+        public void UpdateSelection(SelectionRange selectionToUpdate, SelectionRange newSelection)
         {
             SelectionRange newNormalizedSelection = newSelection.Normalized();
             selectionToUpdate.Update(newNormalizedSelection);
 
             Trace.WriteLine("Updated selection: " + selectionToUpdate);
-
-            /*
-
-            int selectionStartLineIdx = this.Rope.GetLineIndexForCharAtIndex(selectionToUpdate.Start);
-
-            int firstCharIdx = this.Lines.FirstOrDefault()?.StartCharIdx ?? 0;
-            int lastCharIdx = this.Lines.LastOrDefault()?.EndCharIdx ?? 0;
-
-            int firstLineIdxInView = this.Rope.GetLineIndexForCharAtIndex(firstCharIdx);
-            int lastLineIdxInView = this.Rope.GetLineIndexForCharAtIndex(lastCharIdx);
-            if (lastCharIdx > 0 && this.Rope.GetChar(lastCharIdx) == LineViewModel.LINE_BREAK)
-            {
-                lastLineIdxInView++;
-            }
-
-            int amountOfLinesInView = lastLineIdxInView - firstLineIdxInView;
-
-            
-            if (selectionStartLineIdx < this.StartLineIndex)
-            {
-                // TODO: Handle word wrapping offset correct
-                this.StartLineIndex = selectionStartLineIdx;
-                this.StartLineOffset = 0;
-            }
-            else if (selectionStartLineIdx > lastLineIdxInView)
-            {
-                int amountOfLinesToScroll = (selectionStartLineIdx - this.StartLineIndex) - amountOfLinesInView;
-                // TODO: Handle word wrapping offset correct
-                this.StartLineIndex += amountOfLinesToScroll;
-                this.StartLineOffset = 0;
-            }
-            
-
-            if (updateVisual)
-            {
-                this.RecalculateSelections();
-            }
-            */
         }
     }
 }

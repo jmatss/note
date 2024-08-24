@@ -261,17 +261,18 @@ namespace Note.Rope
             modStack?.Push(new ReplaceModification(remove, insert));
         }
 
-        public void Undo()
+        public int Undo()
         {
             if (this.modifications.Count == 0)
             {
-                return;
+                return -1;
             }
 
             IModification modification = this.modifications.Pop();
             if (modification is InsertModification insert)
             {
                 this.Remove(insert.StartIdx, insert.Length, this.modificationsShift);
+                return insert.StartIdx;
             }
             else if (modification is InsertModifications inserts)
             {
@@ -280,6 +281,7 @@ namespace Note.Rope
             else if (modification is RemoveModification remove)
             {
                 this.Insert(remove.StartIdx, remove.BufferRefs, this.modificationsShift);
+                return remove.StartIdx + remove.Length;
             }
             else if (modification is RemoveModifications removes)
             {
@@ -290,11 +292,14 @@ namespace Note.Rope
                 InsertModification ins = replace.Insert;
                 RemoveModification rem = replace.Remove;
                 this.Replace(ins.StartIdx, ins.Length, rem.BufferRefs, this.modificationsShift);
+                return ins.StartIdx + rem.Length;
             }
             else if (modification is ReplaceModifications replaces)
             {
                 throw new Exception("TODO: Undo.ReplaceModifications");
             }
+
+            return -1;
         }
 
         public int GetNextWordStartIndex(int idx, bool skipEndWhitespaces)

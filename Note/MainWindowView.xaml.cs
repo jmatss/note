@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+﻿using Editor.Range;
+using Microsoft.Win32;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
@@ -63,6 +64,16 @@ namespace Note
                     {
                         Clipboard.SetText(cutText);
                         this.ViewModel.FileViewModel?.Write(string.Empty);
+                    }
+                    break;
+
+                case Key.Z when modifiers.Ctrl:
+                    int newSelectionIndex = this.ViewModel.FileViewModel.Rope.Undo();
+                    if (newSelectionIndex != -1)
+                    {
+                        SelectionRange selection = this.ViewModel.FileViewModel.ResetSelections();
+                        selection.Update(new SelectionRange(newSelectionIndex));
+                        this.ViewModel.FileViewModel.Recalculate(true);
                     }
                     break;
 
