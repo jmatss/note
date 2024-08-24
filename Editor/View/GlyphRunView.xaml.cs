@@ -34,6 +34,7 @@ namespace Editor.View
                 {
                     if (this.ViewModel.Width != null)
                     {
+                        // Used to change the width if LineNumbersView.
                         this.View.Width = double.Round(this.ViewModel.Width.Value);
                     }
                     drawingContext.DrawGlyphRun(this.ViewModel.Brush, this.ViewModel.GlyphRun);

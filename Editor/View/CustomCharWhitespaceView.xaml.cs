@@ -42,7 +42,6 @@ namespace Editor.View
                         radius,
                         radius
                     );
-                    
                 }
             }
         }
