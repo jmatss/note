@@ -191,18 +191,5 @@ namespace Editor.View
         {
             return e.GetPosition(sender as IInputElement);
         }
-
-        private void Text_MouseWheel(object sender, MouseWheelEventArgs e)
-        {
-            int scrollIncrement = this.ViewModel.Settings.ScrollIncrement;
-            if (e.Delta > 0)
-            {
-                this.ViewModel.HandleScroll(-scrollIncrement);
-            }
-            else if (e.Delta < 0)
-            {
-                this.ViewModel.HandleScroll(scrollIncrement);
-            }
-        }
     }
 }

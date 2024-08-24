@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:Editor.View"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
+    <Grid MouseWheel="File_MouseWheel">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="*"/>
