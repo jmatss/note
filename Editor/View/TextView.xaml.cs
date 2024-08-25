@@ -68,6 +68,7 @@ namespace Editor.View
             using (DrawingContext drawingContext = this.drawingGroupSelections.Open())
             {
                 drawingContext.PushTransform(PaddingTransform);
+                DrawSelections(drawingContext, this.ViewModel.HighLights);
                 DrawSelections(drawingContext, this.ViewModel.Selections);
                 DrawCursors(drawingContext, this.ViewModel.Cursors);
             }

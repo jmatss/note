@@ -616,7 +616,7 @@ namespace Note.Rope
                 {
                     int curLeafLength;
 
-                    if (this.limit > -1 && amountOfCharsIterated + curLeaf.BufferRef.Length >= this.limit)
+                    if (this.limit > -1 && amountOfCharsIterated + curLeaf.BufferRef.Length - curLeafIdx >= this.limit)
                     {
                         curLeafLength = this.limit - amountOfCharsIterated;
                         limitReached = true;

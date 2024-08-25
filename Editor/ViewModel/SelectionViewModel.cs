@@ -1,17 +1,18 @@
 ﻿using Editor.Range;
+using Note.Rope;
 using System.Windows.Media;
 
 namespace Editor.ViewModel
 {
     public class SelectionViewModel
     {
-        public SelectionViewModel(double x, double y, double width, double height, Settings settings)
+        public SelectionViewModel(double x, double y, double width, double height, Brush brush)
         {
             this.X = x;
             this.Y = y;
             this.width = width;
             this.height = height;
-            this.Brush = settings.SelectionBackgroundColor;
+            this.Brush = brush;
         }
 
         public double X { get; }
@@ -29,7 +30,7 @@ namespace Editor.ViewModel
         public static IEnumerable<SelectionViewModel> CalculateSelections(
             IEnumerable<LineViewModel> lines,
             IEnumerable<SelectionRange> selectionRanges,
-            Settings settings
+            Brush brush
         )
         {
             List<SelectionViewModel> selections = new List<SelectionViewModel>();
@@ -72,11 +73,46 @@ namespace Editor.ViewModel
                     double width = endChar.X + endChar.Width - startChar.X;
                     double height = line.Height;
 
-                    selections.Add(new SelectionViewModel(x, y, width, height, settings));
+                    selections.Add(new SelectionViewModel(x, y, width, height, brush));
                 }
             }
 
             return selections;
+        }
+
+        public static IEnumerable<SelectionRange> FindHighlights(Rope rope, IEnumerable<LineViewModel> lines, string highLight)
+        {
+            List<SelectionRange> highlights = new List<SelectionRange>();
+
+            int highLightLength = highLight.Length;
+
+            foreach (LineViewModel line in lines)
+            {
+                int i = 0;
+                int charIdx = line.StartCharIdx;
+
+                foreach ((char curCh, _) in rope.IterateChars(line.StartCharIdx, line.EndCharIdx - line.StartCharIdx + 1))
+                {
+                    if (curCh == highLight[i])
+                    {
+                        i++;
+
+                        if (i >= highLightLength)
+                        {
+                            i = 0;
+                            highlights.Add(new SelectionRange(charIdx + 1 - highLightLength, charIdx + 1, InsertionPosition.None));
+                        }
+                    }
+                    else
+                    {
+                        i = 0;
+                    }
+
+                    charIdx++;
+                }
+            }
+
+            return highlights;
         }
     }
 }

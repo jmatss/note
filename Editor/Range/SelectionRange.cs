@@ -72,6 +72,11 @@
             return normalized;
         }
 
+        public bool Overlapse(SelectionRange other)
+        {
+            return this.Start <= other.End && this.End >= other.Start;
+        }
+
         public override bool Equals(object? obj)
         {
             if (obj == null) return false;

@@ -56,6 +56,8 @@ namespace Editor.ViewModel
 
         public List<SelectionViewModel> Selections { get; } = new List<SelectionViewModel>();
 
+        public List<SelectionViewModel> HighLights { get; } = new List<SelectionViewModel>();
+
         public List<CursorViewModel> Cursors { get; } = new List<CursorViewModel>();
 
         private double viewWidth;
@@ -96,8 +98,8 @@ namespace Editor.ViewModel
 
         public void Load(Rope rope)
         {
-            this.Rope = rope;
             this.ResetSelections();
+            this.Rope = rope;
             this.Recalculate(false, 0);
         }
 
@@ -479,12 +481,36 @@ namespace Editor.ViewModel
             var selections = SelectionViewModel.CalculateSelections(
                 this.Lines,
                 this.SelectionRanges,
-                this.Settings
+                this.Settings.SelectionBackgroundColor
             );
             this.Selections.Clear();
             foreach (SelectionViewModel selection in selections)
             {
                 this.Selections.Add(selection);
+            }
+
+            this.HighLights.Clear();
+            SelectionRange? firstSelection = this.SelectionRanges.FirstOrDefault();
+            if (firstSelection != null && firstSelection.Length > 0)
+            {
+                string highLightText = string.Concat(
+                    this.Rope.IterateChars(firstSelection.Start, firstSelection.End - firstSelection.Start).Select(x => x.Item1)
+                );
+
+                if (!string.IsNullOrWhiteSpace(highLightText))
+                {
+                    var highLightRanges = SelectionViewModel.FindHighlights(
+                        this.Rope,
+                        this.Lines,
+                        highLightText
+                    );
+                    var highLights = SelectionViewModel.CalculateSelections(
+                        this.Lines,
+                        highLightRanges.Where(x => !x.Overlapse(firstSelection)),
+                        new SolidColorBrush(Color.FromArgb(50, 150, 100,0))
+                    );
+                    this.HighLights.AddRange(highLights);
+                }
             }
 
             var cursors = CursorViewModel.CalculateCursors(

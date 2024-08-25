@@ -20,7 +20,13 @@ namespace Editor.Converters
             var selection = selections.FirstOrDefault();
             if (selection == null)
             {
-                return "ln: 0, ch: 0, ct: 0";
+                return string.Empty;
+            }
+
+            string selectionText = string.Empty;
+            if (selection.Length > 0)
+            {
+                selectionText = ", sl: " + selection.Length;
             }
 
             int lineIdx = rope.GetLineIndexForCharAtIndex(selection.InsertionPositionIndex);
@@ -28,7 +34,7 @@ namespace Editor.Converters
 
             int line = lineIdx + 1;
             int column = selection.InsertionPositionIndex - firstCharIdx + 1;
-            return "ln: " + line + ", ch: " +  column + ", ct: " + (selection.InsertionPositionIndex + 1);
+            return "ln: " + line + ", ch: " +  column + ", ct: " + (selection.InsertionPositionIndex + 1) + selectionText;
         }
 
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
