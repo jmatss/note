@@ -1,8 +1,10 @@
 ﻿using Editor.Range;
 using Editor.View;
 using Note.Rope;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,7 +14,7 @@ using static Editor.HandleInput;
 
 namespace Editor.ViewModel
 {
-    public class FileViewModel
+    public class FileViewModel : INotifyPropertyChanged
     {
         // TODO: Get this value in cleaner way
         private readonly double pixelsPerDip = VisualTreeHelper.GetDpi(new Button()).PixelsPerDip;
@@ -22,7 +24,23 @@ namespace Editor.ViewModel
             this.Settings = settings;
         }
 
-        public Rope Rope { get; private set; } = Rope.FromString(string.Empty, Encoding.UTF8);
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        private void NotifyPropertyChanged([CallerMemberName] string propertyName = "")
+        {
+            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private Rope _rope = Rope.FromString(string.Empty, Encoding.UTF8);
+        public Rope Rope
+        {
+            get => this._rope;
+            private set
+            {
+                this._rope = value;
+                this.NotifyPropertyChanged();
+            }
+        }
 
         public Settings Settings { get; }
 
@@ -491,6 +509,8 @@ namespace Editor.ViewModel
         {
             SelectionRange newNormalizedSelection = newSelection.Normalized();
             selectionToUpdate.Update(newNormalizedSelection);
+
+            this.NotifyPropertyChanged(nameof(this.SelectionRanges));
 
             Trace.WriteLine("Updated selection: " + selectionToUpdate);
         }

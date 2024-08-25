@@ -503,7 +503,16 @@ namespace Editor
                 {
                     // No wordwrapping below us on this line. Scroll to the next real line.
                     int firstCharIdxTargetLine = rope.GetFirstCharIndexAtLineWithIndex(lineIdx + 1);
-                    nextLine = LineViewModel.CalculateVirtualLinesWithWordWrapMiddleToBottom(rope, viewWidth, firstCharIdxTargetLine, y, charDrawWidth, charDrawWidth)[0];
+                    var nextLines = LineViewModel.CalculateVirtualLinesWithWordWrapMiddleToBottom(rope, viewWidth, firstCharIdxTargetLine, y, charDrawWidth, charDrawWidth);
+                    if (nextLines.Count > 0)
+                    {
+                        nextLine = nextLines[0];
+                    }
+                    else
+                    {
+                        // This is the last line and it doesn't contain any characters.
+                        nextLine = new EmptyLineViewModel(firstCharIdxTargetLine, 0, 0, 0);
+                    }
                 }
             }
             else // isUpwards
@@ -545,7 +554,14 @@ namespace Editor
                 .Count(x => x.FirstChar != LineViewModel.CARRIAGE_RETURN && x.FirstChar != LineViewModel.LINE_BREAK);
 
             int insertionIdxAtLine = Math.Min(charLengthToInsertionAtCurrentLine, charCountAtNextLineWithoutLineBreaks);
-            newCharIdx = nextLine[insertionIdxAtLine].CharIdx;
+            if (insertionIdxAtLine >= nextLine.Count)
+            {
+                newCharIdx = nextLine.EndCharIdx;
+            }
+            else
+            {
+                newCharIdx = nextLine[insertionIdxAtLine].CharIdx;
+            }
 
             if (modifiers.Ctrl)
             {

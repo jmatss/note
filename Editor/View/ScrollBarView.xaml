@@ -14,9 +14,9 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <TextBlock Text="▲" Foreground="#555" TextAlignment="Center" Width="{x:Static local:ScrollBarView.ArrowWidth}" Height="{x:Static local:ScrollBarView.ArrowHeight}"/>
-        <RepeatButton Opacity="0" Width="{x:Static local:ScrollBarView.ArrowWidth}" Height="{x:Static local:ScrollBarView.ArrowHeight}" Click="ScrollBarUpArrow_Click"/>
+        <RepeatButton Opacity="0" Focusable="False" Width="{x:Static local:ScrollBarView.ArrowWidth}" Height="{x:Static local:ScrollBarView.ArrowHeight}" Click="ScrollBarUpArrow_Click"/>
         <Border Grid.Row="1" Background="Transparent" Width="20" MouseLeftButtonDown="ScrollBar_MouseLeftButtonDown" MouseLeftButtonUp="ScrollBar_MouseLeftButtonUp" MouseMove="ScrollBar_MouseMove"/>
         <TextBlock Grid.Row="2" Foreground="#555" Text="▼" TextAlignment="Center" Width="{x:Static local:ScrollBarView.ArrowWidth}" Height="{x:Static local:ScrollBarView.ArrowHeight}"/>
-        <RepeatButton Grid.Row="2" Opacity="0" Width="{x:Static local:ScrollBarView.ArrowWidth}" Height="{x:Static local:ScrollBarView.ArrowHeight}" Click="ScrollBarDownArrow_Click"/>
+        <RepeatButton Grid.Row="2" Focusable="False" Opacity="0" Width="{x:Static local:ScrollBarView.ArrowWidth}" Height="{x:Static local:ScrollBarView.ArrowHeight}" Click="ScrollBarDownArrow_Click"/>
     </Grid>
 </UserControl>

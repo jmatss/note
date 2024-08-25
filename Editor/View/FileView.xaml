@@ -13,9 +13,19 @@
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
         <local:LineNumbersView DataContext="{Binding}" MinWidth="36" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"/>
-        <Border Grid.Column="1" BorderThickness="1,1,1,0" BorderBrush="#282828">
-            <local:TextView DataContext="{Binding}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"/>
-        </Border>
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Border BorderThickness="1,1,1,0" BorderBrush="#282828">
+                <local:TextView DataContext="{Binding}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+            </Border>
+            <Border Grid.Row="1" BorderThickness="0,1,1,0" BorderBrush="#282828">
+                <local:StatusBarView DataContext="{Binding}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"/>
+            </Border>
+        </Grid>
+        
         <local:ScrollBarView Grid.Column="2" DataContext="{Binding}" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"/>
     </Grid>
 </UserControl>
