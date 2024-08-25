@@ -69,7 +69,7 @@ namespace Editor.ViewModel
                          (cursorIdxToBringIntoView == viewEndCharIdx + 1 &&
                          rope.IterateChars(viewEndCharIdx).First().Item1 == LINE_BREAK))) 
                 {
-                    lines = CalculateLinesWithWordWrapBottomToTop(
+                    lines = CalculateLinesWithWordWrapBottomToMiddle(
                         rope,
                         viewWidth,
                         viewHeight,
@@ -151,7 +151,7 @@ namespace Editor.ViewModel
             return lines;
         }
 
-        private static List<LineViewModel> CalculateLinesWithWordWrapBottomToTop(
+        private static List<LineViewModel> CalculateLinesWithWordWrapBottomToMiddle(
             Rope rope,
             double viewWidth,
             double viewHeight,
@@ -225,66 +225,7 @@ namespace Editor.ViewModel
             return lines;
         }
 
-        /*
-        /// <summary>
-        /// Calculates the virtual lines (word wrapped lines) for the line
-        /// with index `lineIdx`.
-        /// </summary>
-        /// <param name="rope"></param>
-        /// <param name="viewWidth"></param>
-        /// <param name="viewHeight"></param>
-        /// <param name="viewEndCharIdx"></param>
-        /// <param name="charDrawWidth"></param>
-        /// <param name="charDrawHeight"></param>
-        /// <param name="settings"></param>
-        /// <returns></returns>
-        public static IEnumerable<LineViewModel> CalculateVirtualLinesWordWrap(
-            Rope rope,
-            double viewWidth,
-            int lineIdx,
-            double charDrawWidth,
-            double charDrawHeight,
-            Settings settings
-        )
-        {
-            rope.ValidateTree();
-
-            int firstCharIdxAtLine = rope.GetFirstCharIndexAtLineWithIndex(lineIdx);
-            int firstCharIdxAtNextLine = rope.GetFirstCharIndexAtLineWithIndex(lineIdx + 1);
-            if (firstCharIdxAtNextLine == -1)
-            {
-                firstCharIdxAtNextLine = rope.GetTotalCharCount();
-            }
-            int currentCharIdx = firstCharIdxAtLine;
-
-            double startLocationX = 0.0;
-            double curLocationY = 0.0;
-
-            List<LineViewModel> lines = new List<LineViewModel>();
-            LineViewModel currentLineViewModel;
-
-            while (currentCharIdx < firstCharIdxAtNextLine)
-            {
-                (currentLineViewModel, currentCharIdx) = CalculateLineViewModel(
-                    rope,
-                    currentCharIdx,
-                    startLocationX,
-                    curLocationY,
-                    viewWidth,
-                    charDrawWidth,
-                    charDrawHeight,
-                    settings
-                );
-
-                lines.Add(currentLineViewModel);
-                curLocationY += currentLineViewModel.Max(x => x.Height);
-            }
-
-            return lines;
-        }
-        */
-
-        private static List<LineViewModel> CalculateVirtualLinesWithWordWrapTopToMiddle(
+        public static List<LineViewModel> CalculateVirtualLinesWithWordWrapTopToMiddle(
             Rope rope,
             double viewWidth,
             int charEndIndex,
@@ -433,7 +374,7 @@ namespace Editor.ViewModel
             return newCharIdx != -1 ? newCharIdx : 0;
         }
 
-        private static List<LineViewModel> CalculateVirtualLinesWithWordWrapMiddleToBottom(
+        public static List<LineViewModel> CalculateVirtualLinesWithWordWrapMiddleToBottom(
             Rope rope,
             double viewWidth,
             int charStartIndex,

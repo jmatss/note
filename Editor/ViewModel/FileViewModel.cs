@@ -90,6 +90,8 @@ namespace Editor.ViewModel
 
         public void HandleSpecialKeys(Key key, Modifiers modifiers)
         {
+            (double charDrawWidth, double charDrawHeight) = FileViewModel.CharacterDrawSize(this.Settings, this.pixelsPerDip);
+
             foreach (SelectionRange selection in this.SelectionRanges)
             {
                SelectionRange? newSelection = HandleInput.HandleSpecialKeys(
@@ -97,7 +99,10 @@ namespace Editor.ViewModel
                     key,
                     modifiers,
                     selection,
-                    this.Settings
+                    this.Settings,
+                    this.ViewWidth,
+                    charDrawWidth,
+                    charDrawHeight
                 );
 
                 if (newSelection != null)

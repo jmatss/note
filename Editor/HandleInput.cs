@@ -32,7 +32,10 @@ namespace Editor
             Key key,
             Modifiers modifiers,
             SelectionRange selection,
-            Settings settings
+            Settings settings,
+            double viewWidth,
+            double charDrawWidth,
+            double charDrawHeight
         )
         {
             switch (key)
@@ -48,7 +51,7 @@ namespace Editor
                 case Key.End:
                 case Key.Home:
                 case Key.Insert:
-                    return MoveSelection(rope, key, modifiers, selection);
+                    return MoveSelection(rope, key, modifiers, selection, viewWidth, charDrawWidth, charDrawHeight);
 
                 // Removal keys
                 case Key.Back:
@@ -82,7 +85,10 @@ namespace Editor
             Rope rope,
             Key key,
             Modifiers modifiers,
-            SelectionRange selection
+            SelectionRange selection,
+            double viewWidth,
+            double charDrawWidth,
+            double charDrawHeight
         )
         {
             int newIdx;
@@ -179,57 +185,47 @@ namespace Editor
 
                 case Key.Up:
                     {
-                        int lineIdx = rope.GetLineIndexForCharAtIndex(newSelection.InsertionPositionIndex);
-                        if (lineIdx == 0)
-                        {
-                            return null;
-                        }
+                        bool isDownwards = false;
+                        int oldSelectionCharIdx = newSelection.InsertionPositionIndex;
 
-                        int targetLineIdx = lineIdx - 1;
-                        int targetLineLastCharIdx = rope.GetFirstCharIndexAtLineWithIndex(lineIdx) - 1;
-                        bool lastCharIsLineBreak = rope.IterateChars(targetLineLastCharIdx).First().Item1 == LineViewModel.LINE_BREAK;
-
-                        newSelection = MoveSelectionVertical(
+                        SelectionRange? movedSelection = MoveSelectionVerticalWithWordWrap(
                             rope,
                             newSelection,
                             modifiers,
-                            lineIdx,
-                            targetLineIdx,
-                            lastCharIsLineBreak
+                            isDownwards,
+                            oldSelectionCharIdx,
+                            viewWidth,
+                            charDrawWidth,
+                            charDrawWidth
                         );
+
+                        if (movedSelection != null)
+                        {
+                            newSelection = movedSelection;
+                        }
                     }
                     break;
 
                 case Key.Down:
                     {
-                        int lineIdx = rope.GetLineIndexForCharAtIndex(newSelection.InsertionPositionIndex);
-                        int totalLineBreaks = rope.GetTotalLineBreaks();
-                        if (lineIdx >= totalLineBreaks)
-                        {
-                            return null;
-                        }
+                        bool isDownwards = true;
+                        int oldSelectionCharIdx = newSelection.InsertionPositionIndex;
 
-                        int targetLineIdx = lineIdx + 1;
-                        int belowTargetLineFirstCharIdx = rope.GetFirstCharIndexAtLineWithIndex(targetLineIdx + 1);
-                        bool lastCharIsLineBreak;
-                        if (belowTargetLineFirstCharIdx != -1)
-                        {
-                            int targetLineLastCharIdx = belowTargetLineFirstCharIdx - 1;
-                            lastCharIsLineBreak = rope.IterateChars(targetLineLastCharIdx).First().Item1 == LineViewModel.LINE_BREAK;
-                        }
-                        else
-                        {
-                            lastCharIsLineBreak = false;
-                        }
-
-                        newSelection = MoveSelectionVertical(
+                        SelectionRange? movedSelection = MoveSelectionVerticalWithWordWrap(
                             rope,
                             newSelection,
                             modifiers,
-                            lineIdx,
-                            targetLineIdx,
-                            lastCharIsLineBreak
+                            isDownwards,
+                            oldSelectionCharIdx,
+                            viewWidth,
+                            charDrawWidth,
+                            charDrawWidth
                         );
+
+                        if (movedSelection != null)
+                        {
+                            newSelection = movedSelection;
+                        }
                     }
                     break;
 
@@ -468,6 +464,109 @@ namespace Editor
             }
 
             return new SelectionRange(selection.Start + text.Length);
+        }
+
+        private static SelectionRange? MoveSelectionVerticalWithWordWrap(
+            Rope rope,
+            SelectionRange newSelection,
+            Modifiers modifiers,
+            bool isDownwards,
+            int charIdx,
+            double viewWidth,
+            double charDrawWidth,
+            double charDrawHeight
+        )
+        {
+            int lineIdx = rope.GetLineIndexForCharAtIndex(charIdx);
+            double y = 0; // We don't care about the Y-position used during these calculations, so set arbitrarily to 0.
+
+            int newCharIdx;
+            LineViewModel? nextLine;
+
+            if (isDownwards)
+            {
+                int lineCount = rope.GetTotalLineBreaks() + 1;
+                var curLines = LineViewModel.CalculateVirtualLinesWithWordWrapMiddleToBottom(rope, viewWidth, charIdx, y, charDrawWidth, charDrawWidth);
+
+                if (curLines.Count >= 2)
+                {
+                    // We are at a line that is wordwrapped and we know that there are a "virtual" line below
+                    // in the view that is a part of the same actual line. Scroll to it.
+                    nextLine = curLines[1];
+                }
+                else if (lineIdx + 1 >= lineCount)
+                {
+                    // We are at the last line, unable to scroll down further.
+                    nextLine = null;
+                }
+                else
+                {
+                    // No wordwrapping below us on this line. Scroll to the next real line.
+                    int firstCharIdxTargetLine = rope.GetFirstCharIndexAtLineWithIndex(lineIdx + 1);
+                    nextLine = LineViewModel.CalculateVirtualLinesWithWordWrapMiddleToBottom(rope, viewWidth, firstCharIdxTargetLine, y, charDrawWidth, charDrawWidth)[0];
+                }
+            }
+            else // isUpwards
+            {
+                var curLines = LineViewModel.CalculateVirtualLinesWithWordWrapTopToMiddle(rope, viewWidth, charIdx, charDrawWidth, charDrawWidth);
+
+                if (curLines.Count >= 2)
+                {
+                    // We are at a line that is wordwrapped and we know that there are a "virtual" line above
+                    // in the view that is a part of the same actual line. Scroll to it.
+                    nextLine = curLines[curLines.Count - 2];
+                }
+                else if (lineIdx == 0)
+                {
+                    // We are at the first line, unable to scroll up further.
+                    nextLine = null;
+                }
+                else
+                {
+                    // No wordwrapping above us on this line. Scroll to the next real line (which might potentially be wordwrapped).
+                    int firstCharIdxTargetLine = rope.GetFirstCharIndexAtLineWithIndex(lineIdx - 1);
+                    var nextLines = LineViewModel.CalculateVirtualLinesWithWordWrapMiddleToBottom(rope, viewWidth, firstCharIdxTargetLine, y, charDrawWidth, charDrawWidth);
+                    nextLine = nextLines[nextLines.Count - 1];
+                }
+            }
+
+            if (nextLine == null)
+            {
+                return null;
+            }
+
+            var curVirtualLine = LineViewModel.CalculateVirtualLinesWithWordWrapTopToMiddle(rope, viewWidth, charIdx, charDrawWidth, charDrawWidth)
+                .LastOrDefault();
+            int charLengthToInsertionAtCurrentLine = curVirtualLine?
+                .Select((x, i) => (x, i))
+                .FirstOrDefault(c => c.x.CharIdx == charIdx)
+                .i ?? 0;
+            int charCountAtNextLineWithoutLineBreaks = nextLine
+                .Count(x => x.FirstChar != LineViewModel.CARRIAGE_RETURN && x.FirstChar != LineViewModel.LINE_BREAK);
+
+            int insertionIdxAtLine = Math.Min(charLengthToInsertionAtCurrentLine, charCountAtNextLineWithoutLineBreaks);
+            newCharIdx = nextLine[insertionIdxAtLine].CharIdx;
+
+            if (modifiers.Ctrl)
+            {
+                // TODO: Should scroll up/down one row if this is a up/down.
+                //       How to handle the other cases?
+                return null;
+            }
+            else
+            {
+                if (modifiers.Shift)
+                {
+                    newSelection.InsertionPositionIndex = newCharIdx;
+                }
+                else
+                {
+                    newSelection.Start = newCharIdx;
+                    newSelection.End = newCharIdx;
+                }
+            }
+
+            return newSelection;
         }
 
         private static SelectionRange? MoveSelectionVertical(
