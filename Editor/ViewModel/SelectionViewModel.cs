@@ -1,6 +1,7 @@
 ﻿using Editor.Range;
 using Note.Rope;
 using System.Windows.Media;
+using System.Windows.Shapes;
 
 namespace Editor.ViewModel
 {
@@ -80,36 +81,49 @@ namespace Editor.ViewModel
             return selections;
         }
 
-        public static IEnumerable<SelectionRange> FindHighlights(Rope rope, IEnumerable<LineViewModel> lines, string highLight)
+        public static IEnumerable<SelectionRange> CalculateHighlightsInView(Rope rope, IEnumerable<LineViewModel> lines, string textToFind)
         {
             List<SelectionRange> highlights = new List<SelectionRange>();
 
-            int highLightLength = highLight.Length;
-
             foreach (LineViewModel line in lines)
             {
-                int i = 0;
-                int charIdx = line.StartCharIdx;
+                highlights.AddRange(FindHighlights(rope, textToFind, line.StartCharIdx, line.EndCharIdx));
+            }
 
-                foreach ((char curCh, _) in rope.IterateChars(line.StartCharIdx, line.EndCharIdx - line.StartCharIdx + 1))
+            return highlights;
+        }
+
+        public static IEnumerable<SelectionRange> CalculateHighlights(Rope rope, string textToFind)
+        {
+            return FindHighlights(rope, textToFind, 0, rope.GetTotalCharCount() - 1);
+        }
+
+        private static IEnumerable<SelectionRange> FindHighlights(Rope rope, string textToFind, int startCharIdx, int endCharIdx)
+        {
+            var highlights = new List<SelectionRange>();
+
+            int i = 0;
+            int charIdx = startCharIdx;
+            int stringToFindLength = textToFind.Length;
+
+            foreach ((char curCh, _) in rope.IterateChars(startCharIdx, endCharIdx - startCharIdx + 1))
+            {
+                if (curCh == textToFind[i])
                 {
-                    if (curCh == highLight[i])
-                    {
-                        i++;
+                    i++;
 
-                        if (i >= highLightLength)
-                        {
-                            i = 0;
-                            highlights.Add(new SelectionRange(charIdx + 1 - highLightLength, charIdx + 1, InsertionPosition.None));
-                        }
-                    }
-                    else
+                    if (i >= stringToFindLength)
                     {
                         i = 0;
+                        highlights.Add(new SelectionRange(charIdx + 1 - stringToFindLength, charIdx + 1, InsertionPosition.None));
                     }
-
-                    charIdx++;
                 }
+                else
+                {
+                    i = 0;
+                }
+
+                charIdx++;
             }
 
             return highlights;

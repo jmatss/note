@@ -49,7 +49,7 @@ namespace Editor.View
             drawingContext.DrawDrawing(drawingGroupSelections);
         }
 
-        public void Draw(double _charDrawWidth, double _charDrawHeight)
+        public void Draw(double charDrawWidth, double charDrawHeight)
         {
             using (DrawingContext drawingContext = this.drawingGroupText.Open())
             {
@@ -60,16 +60,16 @@ namespace Editor.View
                 DrawCustomChars(drawingContext, this.ViewModel.CustomChars);
             }
 
-            this.DrawSelections();
+            this.DrawSelections(charDrawWidth, charDrawHeight);
         }
 
-        public void DrawSelections()
+        public void DrawSelections(double _charDrawWidth, double _charDrawHeight)
         {
             using (DrawingContext drawingContext = this.drawingGroupSelections.Open())
             {
                 drawingContext.PushTransform(PaddingTransform);
-                DrawSelections(drawingContext, this.ViewModel.HighLights);
-                DrawSelections(drawingContext, this.ViewModel.Selections);
+                DrawSelections(drawingContext, this.ViewModel.HighlightsInView);
+                DrawSelections(drawingContext, this.ViewModel.SelectionsInView);
                 DrawCursors(drawingContext, this.ViewModel.Cursors);
             }
         }

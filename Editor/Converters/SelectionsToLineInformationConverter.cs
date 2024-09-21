@@ -5,7 +5,7 @@ using System.Windows.Data;
 
 namespace Editor.Converters
 {
-    public class SelectionRangesToLineInformationConverter : IMultiValueConverter
+    public class SelectionsToLineInformationConverter : IMultiValueConverter
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {

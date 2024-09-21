@@ -1,4 +1,5 @@
-﻿using Editor.ViewModel;
+﻿using Editor.Range;
+using Editor.ViewModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -32,6 +33,7 @@ namespace Editor.View
             if (e.NewValue is FileViewModel vm)
             {
                 vm.OnDraw += this.Draw;
+                vm.OnDrawSelections += this.Draw;
             }
         }
 
@@ -48,6 +50,18 @@ namespace Editor.View
             {
                 this.DrawBackground(drawingContext);
                 this.DrawScrollBar(drawingContext, charDrawHeight);
+                this.DrawHighlights(
+                    drawingContext,
+                    charDrawHeight,
+                    this.ViewModel.Highlights,
+                    new SolidColorBrush(Color.FromArgb(255, 49, 40, 20))
+                );
+                this.DrawHighlights(
+                    drawingContext,
+                    charDrawHeight,
+                    this.ViewModel.Selections,
+                    new SolidColorBrush(Color.FromArgb(255, 85, 85, 85))
+                );
             }
         }
 
@@ -79,12 +93,16 @@ namespace Editor.View
             int possibleAmountOfLinesInView = (int)((this.ActualHeight) / charDrawHeight);
             int allLines = this.ViewModel.Rope.GetTotalLineBreaks() + possibleAmountOfLinesInView;
             allLines = allLines == 0 ? 1 : allLines;
-
             double oneLineHeight = (this.ActualHeight - ArrowHeight * 2) / allLines;
             int startLineIdx = this.ViewModel.Rope.GetLineIndexForCharAtIndex(startCharIdx);
+            int lineSpan = possibleAmountOfLinesInView;
 
-            double scrollBarY = ArrowHeight + oneLineHeight * startLineIdx;
-            double scrollBarHeight = (possibleAmountOfLinesInView * (this.ActualHeight - ArrowHeight * 2)) / (allLines);
+            (double scrollBarY, double scrollBarHeight) = CalculateYPositionAndHeight(
+                allLines,
+                oneLineHeight,
+                startLineIdx,
+                lineSpan
+            );
 
             if (scrollBarHeight > 0)
             {
@@ -106,6 +124,76 @@ namespace Editor.View
                 null,
                 this.ScrollBarRect
             );
+        }
+
+        private void DrawHighlights(DrawingContext drawingContext, double charDrawHeight, IEnumerable<SelectionRange> highlights, Brush brush)
+        {
+            int startCharIdx = this.ViewModel.Lines.FirstOrDefault()?.StartCharIdx ?? -1;
+            int endCharIdx = this.ViewModel.Lines.LastOrDefault()?.EndCharIdx ?? -1;
+
+            if (startCharIdx == -1 || endCharIdx == -1)
+            {
+                return;
+            }
+
+            int possibleAmountOfLinesInView = (int)((this.ActualHeight) / charDrawHeight);
+            int allLines = this.ViewModel.Rope.GetTotalLineBreaks() + possibleAmountOfLinesInView;
+            allLines = allLines == 0 ? 1 : allLines;
+            double oneLineHeight = (this.ActualHeight - ArrowHeight * 2) / allLines;
+
+            foreach (SelectionRange highlight in highlights)
+            {
+                int startLineIdx = this.ViewModel.Rope.GetLineIndexForCharAtIndex(highlight.Start);
+                int endLineIdx = this.ViewModel.Rope.GetLineIndexForCharAtIndex(highlight.End);
+                int lineSpan = endLineIdx - startLineIdx + 1;
+
+                (double highlightY, double highlightHeight) = CalculateYPositionAndHeight(
+                    allLines,
+                    oneLineHeight,
+                    startLineIdx,
+                    lineSpan
+                );
+
+                if (highlightHeight > 0)
+                {
+                    var highlightRect = new Rect(
+                        new Point(0, highlightY),
+                        new Size(
+                            this.ActualWidth,
+                            highlightHeight
+                        )
+                    );
+                    drawingContext.DrawRectangle(
+                        brush,
+                        null,
+                        highlightRect
+                    );
+                }
+            }
+        }
+
+        /// <summary>
+        /// Caluclates the y-position and the height of something that are to be drawn
+        /// in the scrollbar. This can be the thumb of the scrollbar or some sort of highlighting.
+        /// </summary>
+        /// <param name="allLines">Amount of line breaks in rope + amount of lines that can be displayed in the view</param>
+        /// <param name="oneLineHeight">The height that one line takes up in the scrollbar</param>
+        /// <param name="startLineIdx">The index of the line that represents the top of the thing that we are to draw</param>
+        /// <param name="lineSpan">How many actual lines this thing spans</param>
+        /// <returns>The y-position and the height</returns>
+        private (double, double) CalculateYPositionAndHeight(int allLines, double oneLineHeight, int startLineIdx, int lineSpan)
+        {
+            double y = ArrowHeight + oneLineHeight * startLineIdx;
+            double height = (lineSpan * (this.ActualHeight - ArrowHeight * 2)) / (allLines);
+
+            if (height > 0)
+            {
+                return (y, height);
+            }
+            else
+            {
+                return (0, 0);
+            }
         }
 
         private void ScrollBarUpArrow_Click(object sender, RoutedEventArgs e)

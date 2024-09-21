@@ -54,9 +54,13 @@ namespace Editor.ViewModel
 
         public CustomCharViewModel? CustomChars { get; set; }
 
-        public List<SelectionViewModel> Selections { get; } = new List<SelectionViewModel>();
+        public List<SelectionRange> Selections { get; } = new List<SelectionRange>();
 
-        public List<SelectionViewModel> HighLights { get; } = new List<SelectionViewModel>();
+        public List<SelectionViewModel> SelectionsInView { get; } = new List<SelectionViewModel>();
+
+        public List<SelectionRange> Highlights { get; } = new List<SelectionRange>();
+
+        public List<SelectionViewModel> HighlightsInView { get; } = new List<SelectionViewModel>();
 
         public List<CursorViewModel> Cursors { get; } = new List<CursorViewModel>();
 
@@ -90,11 +94,9 @@ namespace Editor.ViewModel
 
         public GlyphTypeface? GlyphTypeFace { get; private set; }
 
-        public List<SelectionRange> SelectionRanges { get; } = new List<SelectionRange>();
-
         public Action<double, double>? OnDraw { get; set; }
 
-        public Action? OnDrawSelections { get; set; }
+        public Action<double, double>? OnDrawSelections { get; set; }
 
         public void Load(Rope rope)
         {
@@ -112,7 +114,7 @@ namespace Editor.ViewModel
         {
             (double charDrawWidth, double charDrawHeight) = FileViewModel.CharacterDrawSize(this.Settings, this.pixelsPerDip);
 
-            foreach (SelectionRange selection in this.SelectionRanges)
+            foreach (SelectionRange selection in this.Selections)
             {
                SelectionRange? newSelection = HandleInput.HandleSpecialKeys(
                     this.Rope,
@@ -141,14 +143,14 @@ namespace Editor.ViewModel
                 // TODO: Handle correct. Should update the indices according to which rows
                 //       the cursors are located
                 List<SelectionRange> newSelections = new List<SelectionRange>();
-                foreach (SelectionRange selection in this.SelectionRanges)
+                foreach (SelectionRange selection in this.Selections)
                 {
                     newSelections.Add(new SelectionRange(selection) {
                         InsertionPositionIndex = newCursorCharIndex
                     });
                 }
 
-                foreach ((var selectionToUpdate, var newSelection) in this.SelectionRanges.Zip(newSelections))
+                foreach ((var selectionToUpdate, var newSelection) in this.Selections.Zip(newSelections))
                 {
                     this.UpdateSelection(selectionToUpdate, newSelection);
                 }
@@ -185,8 +187,8 @@ namespace Editor.ViewModel
             }
             else
             {
-                SelectionRange selection = this.SelectionRanges.First();
-                SelectionRange newSelection = new SelectionRange(this.SelectionRanges.First())
+                SelectionRange selection = this.Selections.First();
+                SelectionRange newSelection = new SelectionRange(this.Selections.First())
                 {
                     InsertionPositionIndex = newCursorCharIndex
                 };
@@ -263,14 +265,14 @@ namespace Editor.ViewModel
 
         public string? Read()
         {
-            if (this.SelectionRanges.All(x => x.Length == 0))
+            if (this.Selections.All(x => x.Length == 0))
             {
                 return null;
             }
 
             List<string> texts = new List<string>();
 
-            foreach (SelectionRange selection in this.SelectionRanges)
+            foreach (SelectionRange selection in this.Selections)
             {
                 IEnumerable<char> text = this.Rope
                     .IterateChars(selection.Start, selection.Length)
@@ -283,7 +285,7 @@ namespace Editor.ViewModel
 
         public void Write(string text)
         {
-            foreach (SelectionRange selection in this.SelectionRanges.Reverse<SelectionRange>())
+            foreach (SelectionRange selection in this.Selections.Reverse<SelectionRange>())
             {
                 SelectionRange newselection = WriteText(this.Rope, text, selection);
                 this.UpdateSelection(selection, newselection);
@@ -309,9 +311,9 @@ namespace Editor.ViewModel
 
         public SelectionRange ResetSelections()
         {
-            this.SelectionRanges.Clear();
+            this.Selections.Clear();
             SelectionRange selection = new SelectionRange(0);
-            this.SelectionRanges.Add(selection);
+            this.Selections.Add(selection);
             return selection;
         }
 
@@ -367,7 +369,7 @@ namespace Editor.ViewModel
             int? charIdxToBringIntoView = null;
             if (bringCursorIntoView)
             {
-                charIdxToBringIntoView = this.SelectionRanges.FirstOrDefault()?.InsertionPositionIndex ?? 0;
+                charIdxToBringIntoView = this.Selections.FirstOrDefault()?.InsertionPositionIndex ?? 0;
             }
             else if (scrollDelta > 0)
             {
@@ -478,45 +480,52 @@ namespace Editor.ViewModel
 
         private void RecalculateSelections(bool redraw)
         {
-            var selections = SelectionViewModel.CalculateSelections(
+            var selectionsInView = SelectionViewModel.CalculateSelections(
                 this.Lines,
-                this.SelectionRanges,
+                this.Selections,
                 this.Settings.SelectionBackgroundColor
             );
-            this.Selections.Clear();
-            foreach (SelectionViewModel selection in selections)
+            this.SelectionsInView.Clear();
+            foreach (SelectionViewModel selection in selectionsInView)
             {
-                this.Selections.Add(selection);
+                this.SelectionsInView.Add(selection);
             }
 
-            this.HighLights.Clear();
-            SelectionRange? firstSelection = this.SelectionRanges.FirstOrDefault();
+            this.Highlights.Clear();
+            this.HighlightsInView.Clear();
+            SelectionRange? firstSelection = this.Selections.FirstOrDefault();
             if (firstSelection != null && firstSelection.Length > 0)
             {
-                string highLightText = string.Concat(
+                string textToFind = string.Concat(
                     this.Rope.IterateChars(firstSelection.Start, firstSelection.End - firstSelection.Start).Select(x => x.Item1)
                 );
 
-                if (!string.IsNullOrWhiteSpace(highLightText))
+                if (!string.IsNullOrWhiteSpace(textToFind))
                 {
-                    var highLightRanges = SelectionViewModel.FindHighlights(
+                    // TODO: Find all highlights in the background for performance reasons.
+                    /*
+                    var highLightRanges = SelectionViewModel.CalculateHighlightsInView(
                         this.Rope,
                         this.Lines,
                         highLightText
                     );
-                    var highLights = SelectionViewModel.CalculateSelections(
+                    */
+                    this.Highlights.AddRange(SelectionViewModel.CalculateHighlights(
+                        this.Rope,
+                        textToFind
+                    ));
+                    this.HighlightsInView.AddRange(SelectionViewModel.CalculateSelections(
                         this.Lines,
-                        highLightRanges.Where(x => !x.Overlapse(firstSelection)),
-                        new SolidColorBrush(Color.FromArgb(50, 150, 100,0))
-                    );
-                    this.HighLights.AddRange(highLights);
+                        this.Highlights.Where(x => !x.Overlapse(firstSelection)),
+                        new SolidColorBrush(Color.FromArgb(50, 150, 100, 0))
+                    ));
                 }
             }
 
             var cursors = CursorViewModel.CalculateCursors(
                 this.Rope,
                 this.Lines,
-                this.SelectionRanges,
+                this.Selections,
                 this.Settings
             );
             this.Cursors.Clear();
@@ -527,7 +536,8 @@ namespace Editor.ViewModel
 
             if (redraw)
             {
-                this.OnDrawSelections?.Invoke();
+                (double charDrawWidth, double charDrawHeight) = FileViewModel.CharacterDrawSize(this.Settings, this.pixelsPerDip);
+                this.OnDrawSelections?.Invoke(charDrawWidth, charDrawHeight);
             }
         }
 
@@ -536,7 +546,7 @@ namespace Editor.ViewModel
             SelectionRange newNormalizedSelection = newSelection.Normalized();
             selectionToUpdate.Update(newNormalizedSelection);
 
-            this.NotifyPropertyChanged(nameof(this.SelectionRanges));
+            this.NotifyPropertyChanged(nameof(this.Selections));
 
             Trace.WriteLine("Updated selection: " + selectionToUpdate);
         }
