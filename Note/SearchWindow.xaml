@@ -1,0 +1,75 @@
+﻿<Window x:Class="Note.SearchWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Note"
+        xmlns:editorview="clr-namespace:Editor.View;assembly=Editor"
+        mc:Ignorable="d"
+        FocusManager.FocusedElement="{Binding ElementName=Find}"
+        WindowStyle="SingleBorderWindow"
+        ResizeMode="CanResize"
+        WindowStartupLocation="CenterOwner"
+        SizeToContent="Height"
+        Title="Find" Height="400" Width="600">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="32" ResizeBorderThickness="{x:Static SystemParameters.WindowResizeBorderThickness}" CornerRadius="0"/>
+    </WindowChrome.WindowChrome>
+    <Border Background="{x:Static editorview:TextView.BackgroundColor}" BorderThickness="1" BorderBrush="#282828">
+        <DockPanel>
+            <Grid>
+                <!-- https://stackoverflow.com/a/55690215 -->
+                <Grid.Style>
+                    <Style TargetType="{x:Type Panel}">
+                        <Setter Property="Margin" Value="0"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}, Path=WindowState}" Value="Maximized">
+                                <Setter Property="Margin" Value="7"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="32"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Grid Background="#191919">
+                    <!-- https://engy.us/blog/2020/01/01/implementing-a-custom-window-title-bar-in-wpf/ -->
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="Find" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="#bbbbbb"/>
+                </Grid>
+
+                <!-- Hack to draw over the default minimize/maximize/exit buttons. Prevent clicking them -->
+                <Border Background="Transparent" Width="150" HorizontalAlignment="Right" WindowChrome.IsHitTestVisibleInChrome="True"/>
+
+                <DockPanel Grid.Row="1">
+                    <Grid DockPanel.Dock="Bottom">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Content="Find" Margin="8" IsDefault="True" Click="ButtonFind_Click"/>
+                        <Button Grid.Column="1" Content="Cancel" Margin="0,8,8,8" IsCancel="True" Click="ButtonCancel_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                    </Grid>
+
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBox x:Name="Find" Grid.Row="0" Text="{Binding Find, UpdateSourceTrigger=PropertyChanged}" Tag="Find" Margin="8" AcceptsReturn="False"/>
+                        <TextBox Grid.Row="1" Text="{Binding Replace, UpdateSourceTrigger=PropertyChanged}" Tag="Replace" Margin="8,0,8,0"/>
+                    </Grid>
+                </DockPanel>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

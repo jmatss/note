@@ -77,6 +77,10 @@ namespace Note
                     }
                     break;
 
+                case Key.F when modifiers.Ctrl:
+                    this.ViewModel.OpenSearchWindow();
+                    break;
+
                 default:
                     isHandled = false;
                     break;

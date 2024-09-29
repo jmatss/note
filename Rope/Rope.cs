@@ -450,6 +450,11 @@ namespace Note.Rope
             return this.IterateChars(charIdx, 1).First().Item1;
         }
 
+        public string GetText(int startCharIdx, int length)
+        {
+            return string.Join("", this.IterateChars(startCharIdx, length).Select(x => x.Item1));
+        }
+
         public int GetTotalCharCount()
         {
             Counts rootTotalCounts = this.root.GetCounts();
@@ -487,6 +492,33 @@ namespace Note.Rope
             }
 
             return charCount;
+        }
+
+        public IEnumerable<Tuple<int, int>> FindAll(string textToFind, int startCharIdx, int endCharIdx)
+        {
+            int i = 0;
+            int charIdx = startCharIdx;
+            int stringToFindLength = textToFind.Length;
+
+            foreach ((char curCh, _) in this.IterateChars(startCharIdx, endCharIdx - startCharIdx + 1))
+            {
+                if (curCh == textToFind[i])
+                {
+                    i++;
+
+                    if (i >= stringToFindLength)
+                    {
+                        i = 0;
+                        yield return new Tuple<int, int>(charIdx + 1 - stringToFindLength, charIdx + 1);
+                    }
+                }
+                else
+                {
+                    i = 0;
+                }
+
+                charIdx++;
+            }
         }
 
         public IEnumerable<(char, int)> IterateChars(int startIdx, int limit = -1) => new RopeCharsIterator(this, startIdx, limit);

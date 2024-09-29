@@ -86,8 +86,11 @@ namespace Editor.ViewModel
             List<SelectionRange> highlights = new List<SelectionRange>();
 
             foreach (LineViewModel line in lines)
-            {
-                highlights.AddRange(FindHighlights(rope, textToFind, line.StartCharIdx, line.EndCharIdx));
+            { 
+                highlights.AddRange(
+                    rope.FindAll(textToFind, line.StartCharIdx, line.EndCharIdx)
+                        .Select(x => new SelectionRange(x.Item1, x.Item2, InsertionPosition.None))
+                );
             }
 
             return highlights;
@@ -95,38 +98,8 @@ namespace Editor.ViewModel
 
         public static IEnumerable<SelectionRange> CalculateHighlights(Rope rope, string textToFind)
         {
-            return FindHighlights(rope, textToFind, 0, rope.GetTotalCharCount() - 1);
-        }
-
-        private static IEnumerable<SelectionRange> FindHighlights(Rope rope, string textToFind, int startCharIdx, int endCharIdx)
-        {
-            var highlights = new List<SelectionRange>();
-
-            int i = 0;
-            int charIdx = startCharIdx;
-            int stringToFindLength = textToFind.Length;
-
-            foreach ((char curCh, _) in rope.IterateChars(startCharIdx, endCharIdx - startCharIdx + 1))
-            {
-                if (curCh == textToFind[i])
-                {
-                    i++;
-
-                    if (i >= stringToFindLength)
-                    {
-                        i = 0;
-                        highlights.Add(new SelectionRange(charIdx + 1 - stringToFindLength, charIdx + 1, InsertionPosition.None));
-                    }
-                }
-                else
-                {
-                    i = 0;
-                }
-
-                charIdx++;
-            }
-
-            return highlights;
+            return rope.FindAll(textToFind, 0, rope.GetTotalCharCount())
+                .Select(x => new SelectionRange(x.Item1, x.Item2, InsertionPosition.None));
         }
     }
 }

@@ -13,7 +13,7 @@
         ResizeMode="CanResize"
         Title="Note" Height="450" Width="800">
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="32" ResizeBorderThickness="{x:Static SystemParameters.WindowResizeBorderThickness}" GlassFrameThickness="0" CornerRadius="0"/>
+        <WindowChrome CaptionHeight="32" ResizeBorderThickness="{x:Static SystemParameters.WindowResizeBorderThickness}" CornerRadius="0"/>
     </WindowChrome.WindowChrome>
     <Border BorderThickness="1" BorderBrush="#282828">
         <Grid>
@@ -65,6 +65,9 @@
                     </MenuItem>
                 </Menu>
             </Grid>
+
+            <!-- Hack to draw over the default minimize/maximize/exit buttons. Prevent clicking them -->
+            <Border Background="Transparent" Width="150" HorizontalAlignment="Right" WindowChrome.IsHitTestVisibleInChrome="True"/>
 
             <ContentControl Grid.Row="1" Content="{Binding FileViewModel}"/>
         </Grid>

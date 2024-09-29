@@ -294,6 +294,48 @@ namespace Editor.ViewModel
             this.Recalculate(true);
         }
 
+        public bool FindAndNavigateToText(string textToFind)
+        {
+            SelectionRange? selection = this.Selections.FirstOrDefault();
+
+            int startSearchCharIdx = selection != null ? selection.End : 0;
+            int endSearchCharIdx = this.Rope.GetTotalCharCount();
+
+            SelectionRange? foundTextLocation = this.FindText(textToFind, startSearchCharIdx, endSearchCharIdx);
+            if (foundTextLocation == null && startSearchCharIdx != 0)
+            {
+                // Wrap around and search from beginning of file
+                endSearchCharIdx = startSearchCharIdx;
+                startSearchCharIdx = 0;
+                foundTextLocation = this.FindText(textToFind, startSearchCharIdx, endSearchCharIdx);
+            }
+
+            if (foundTextLocation != null)
+            {
+                SelectionRange newSelection = this.ResetSelections();
+                this.UpdateSelection(newSelection, foundTextLocation);
+                this.Recalculate(true);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private SelectionRange? FindText(string textToFind, int startSearchCharIdx, int endSearchCharIdx)
+        {
+            Tuple<int, int>? foundText = this.Rope.FindAll(textToFind, startSearchCharIdx, endSearchCharIdx).FirstOrDefault();
+            if (foundText != null)
+            {
+                return new SelectionRange(foundText.Item1, foundText.Item2, InsertionPosition.End);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
         public static (double, double) CharacterDrawSize(Settings settings, double pixelsPerDip)
         {
             var formattedText = new FormattedText(
