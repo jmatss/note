@@ -237,6 +237,7 @@ namespace Editor.ViewModel
 
             int lineIdx = rope.GetLineIndexForCharAtIndex(charEndIndex);
             int firstCharIdxAtLine = rope.GetFirstCharIndexAtLineWithIndex(lineIdx);
+            int lastCharIdxInFile = rope.GetTotalCharCount();
             int currentCharIdx = firstCharIdxAtLine;
 
             double startLocationX = 0.0;
@@ -245,7 +246,7 @@ namespace Editor.ViewModel
             List<LineViewModel> lines = [];
             LineViewModel currentLineViewModel;
 
-            while (currentCharIdx <= charEndIndex)
+            while (currentCharIdx <= charEndIndex && currentCharIdx < lastCharIdxInFile)
             {
                 int prevCharIdx = currentCharIdx;
                 (currentLineViewModel, currentCharIdx) = CalculateLineViewModel(

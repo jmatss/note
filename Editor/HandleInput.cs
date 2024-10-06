@@ -570,7 +570,16 @@ namespace Editor
             int insertionIdxAtLine = Math.Min(charLengthToInsertionAtCurrentLine, charCountAtNextLineWithoutLineBreaks);
             if (insertionIdxAtLine >= nextLine.Count)
             {
-                newCharIdx = nextLine.EndCharIdx;
+                if (nextLine.LastOrDefault() is CharacterViewModel c &&
+                    c.FirstChar != LineViewModel.CARRIAGE_RETURN &&
+                    c.FirstChar != LineViewModel.LINE_BREAK)
+                {
+                    newCharIdx = nextLine.EndCharIdx + 1;
+                }
+                else
+                {
+                    newCharIdx = nextLine.EndCharIdx;
+                }
             }
             else
             {
@@ -691,6 +700,10 @@ namespace Editor
                 {
                     charIdx--;
                 }
+                else if (lastChar.FirstChar != LineViewModel.LINE_BREAK)
+                {
+                    charIdx++;
+                }
 
                 return charIdx;
             }
@@ -717,7 +730,7 @@ namespace Editor
                 if (lastLine.EndCharIdx + 1 < totalCharCount)
                 {
                     // TODO: Currently takes the first character of line below.
-                    //       Implement so that it consideres the x-position of the click
+                    //       Implement so that it considers the x-position of the click
                     int lastLineIdx = rope.GetLineIndexForCharAtIndex(lastLine.StartCharIdx);
                     int totalLineCount = rope.GetTotalLineBreaks() + 1;
                     return rope.GetFirstCharIndexAtLineWithIndex(lastLineIdx + 1 < totalLineCount ? lastLineIdx + 1 : lastLineIdx);
