@@ -49,7 +49,6 @@ namespace Editor.View
             using (DrawingContext drawingContext = this.drawingGroup.Open())
             {
                 this.DrawBackground(drawingContext);
-                this.DrawScrollBar(drawingContext, charDrawHeight);
                 this.DrawHighlights(
                     drawingContext,
                     charDrawHeight,
@@ -62,6 +61,7 @@ namespace Editor.View
                     this.ViewModel.Selections,
                     new SolidColorBrush(Color.FromArgb(255, 85, 85, 85))
                 );
+                this.DrawScrollBar(drawingContext, charDrawHeight);
             }
         }
 
@@ -120,7 +120,7 @@ namespace Editor.View
             }
 
             drawingContext.DrawRectangle(
-                new SolidColorBrush(Color.FromArgb(255, 15, 15, 15)),
+                new SolidColorBrush(Color.FromArgb(100, 0, 0, 0)),
                 null,
                 this.ScrollBarRect
             );
