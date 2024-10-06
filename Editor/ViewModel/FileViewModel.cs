@@ -19,6 +19,24 @@ namespace Editor.ViewModel
         // TODO: Get this value in cleaner way
         private readonly double pixelsPerDip = VisualTreeHelper.GetDpi(new Button()).PixelsPerDip;
 
+        /// <summary>
+        /// When navigating over multiple rows with sequential up/down arrow clicks, we want to
+        /// keep track of the original column that we where on.
+        /// 
+        /// For example given the following example text.
+        /// ```
+        /// The first line
+        /// Second
+        /// The third line that contains more words
+        /// ```
+        /// 
+        /// Assume that we start with the cursor at the end of the word `line` at the first line (column index 14).
+        /// If we press the down arrow one time, the cursor will end up at the last line of the second line (column index 6).
+        /// When we press the down arrow again, we want the cursor to end up at the same column as we started at if possible (14).
+        /// This index is stored in this variable.
+        /// </summary>
+        private int _previousSelectionColumnIndex = -1;
+
         public FileViewModel(Settings settings)
         {
             this.Settings = settings;
@@ -114,6 +132,22 @@ namespace Editor.ViewModel
         {
             (double charDrawWidth, double charDrawHeight) = FileViewModel.CharacterDrawSize(this.Settings, this.pixelsPerDip);
 
+            if (key is Key.Up or Key.Down)
+            {
+                if (this._previousSelectionColumnIndex == -1 &&
+                    this.Selections.FirstOrDefault()?.InsertionPositionIndex is int selectionCharIdx)
+                {
+                    int selectionLineIdx = this.Rope.GetLineIndexForCharAtIndex(selectionCharIdx);
+                    int lineStartCharIdx = this.Rope.GetFirstCharIndexAtLineWithIndex(selectionLineIdx);
+                    int columnIdx = selectionCharIdx - lineStartCharIdx;
+                    this._previousSelectionColumnIndex = columnIdx;
+                }
+            }
+            else
+            {
+                this._previousSelectionColumnIndex = -1;
+            }
+
             foreach (SelectionRange selection in this.Selections)
             {
                SelectionRange? newSelection = HandleInput.HandleSpecialKeys(
@@ -124,7 +158,8 @@ namespace Editor.ViewModel
                     this.Settings,
                     this.ViewWidth,
                     charDrawWidth,
-                    charDrawHeight
+                    charDrawHeight,
+                    this._previousSelectionColumnIndex
                 );
 
                 if (newSelection != null)

@@ -35,7 +35,8 @@ namespace Editor
             Settings settings,
             double viewWidth,
             double charDrawWidth,
-            double charDrawHeight
+            double charDrawHeight,
+            int previousSelectionColumnIndex
         )
         {
             switch (key)
@@ -51,7 +52,7 @@ namespace Editor
                 case Key.End:
                 case Key.Home:
                 case Key.Insert:
-                    return MoveSelection(rope, key, modifiers, selection, viewWidth, charDrawWidth, charDrawHeight);
+                    return MoveSelection(rope, key, modifiers, selection, viewWidth, charDrawWidth, charDrawHeight, previousSelectionColumnIndex);
 
                 // Removal keys
                 case Key.Back:
@@ -88,7 +89,8 @@ namespace Editor
             SelectionRange selection,
             double viewWidth,
             double charDrawWidth,
-            double charDrawHeight
+            double charDrawHeight,
+            int previousSelectionColumnIndex
         )
         {
             int newIdx;
@@ -196,7 +198,8 @@ namespace Editor
                             oldSelectionCharIdx,
                             viewWidth,
                             charDrawWidth,
-                            charDrawWidth
+                            charDrawWidth,
+                            previousSelectionColumnIndex
                         );
 
                         if (movedSelection != null)
@@ -219,7 +222,8 @@ namespace Editor
                             oldSelectionCharIdx,
                             viewWidth,
                             charDrawWidth,
-                            charDrawWidth
+                            charDrawWidth,
+                            previousSelectionColumnIndex
                         );
 
                         if (movedSelection != null)
@@ -474,7 +478,8 @@ namespace Editor
             int charIdx,
             double viewWidth,
             double charDrawWidth,
-            double charDrawHeight
+            double charDrawHeight,
+            int previousSelectionColumnIndex
         )
         {
             int lineIdx = rope.GetLineIndexForCharAtIndex(charIdx);
@@ -546,12 +551,21 @@ namespace Editor
 
             var curVirtualLine = LineViewModel.CalculateVirtualLinesWithWordWrapTopToMiddle(rope, viewWidth, charIdx, charDrawWidth, charDrawWidth)
                 .LastOrDefault();
-            int charLengthToInsertionAtCurrentLine = curVirtualLine?
-                .Select((x, i) => (x, i))
-                .FirstOrDefault(c => c.x.CharIdx == charIdx)
-                .i ?? 0;
             int charCountAtNextLineWithoutLineBreaks = nextLine
                 .Count(x => x.FirstChar != LineViewModel.CARRIAGE_RETURN && x.FirstChar != LineViewModel.LINE_BREAK);
+
+            int charLengthToInsertionAtCurrentLine;
+            if (previousSelectionColumnIndex != -1)
+            {
+                charLengthToInsertionAtCurrentLine = previousSelectionColumnIndex;
+            }
+            else
+            {
+                charLengthToInsertionAtCurrentLine = curVirtualLine?
+                    .Select((x, i) => (x, i))
+                    .FirstOrDefault(c => c.x.CharIdx == charIdx)
+                    .i ?? 0;
+            }
 
             int insertionIdxAtLine = Math.Min(charLengthToInsertionAtCurrentLine, charCountAtNextLineWithoutLineBreaks);
             if (insertionIdxAtLine >= nextLine.Count)
