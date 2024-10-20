@@ -20,6 +20,7 @@
             <TextBlock.Text>
                 <MultiBinding Converter="{StaticResource LineInformationConverter}">
                     <Binding Path="Selections"/>
+                    <Binding Path="Highlights"/>
                     <Binding Path="Rope"/>
                 </MultiBinding>
             </TextBlock.Text>

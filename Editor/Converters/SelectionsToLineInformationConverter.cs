@@ -9,13 +9,14 @@ namespace Editor.Converters
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            if (values.Length != 2)
+            if (values.Length != 3)
             {
-                throw new ArgumentException("values.Length != 2");
+                throw new ArgumentException("values.Length != 3");
             }
 
             var selections = (List<SelectionRange>)values[0];
-            var rope = (Rope)values[1];
+            var highlights = (List<SelectionRange>)values[1];
+            var rope = (Rope)values[2];
 
             var selection = selections.FirstOrDefault();
             if (selection == null)
@@ -26,15 +27,15 @@ namespace Editor.Converters
             string selectionText = string.Empty;
             if (selection.Length > 0)
             {
-                selectionText = ", sl: " + selection.Length;
+                selectionText = "(len: " + selection.Length + ", count: " + highlights.Count + ") ";
             }
 
             int lineIdx = rope.GetLineIndexForCharAtIndex(selection.InsertionPositionIndex);
             int firstCharIdx = rope.GetFirstCharIndexAtLineWithIndex(lineIdx);
 
-            int line = lineIdx + 1;
+            int row = lineIdx + 1;
             int column = selection.InsertionPositionIndex - firstCharIdx + 1;
-            return "ln: " + line + ", ch: " +  column + ", ct: " + (selection.InsertionPositionIndex + 1) + selectionText;
+            return selectionText + "row: " + row + ", col: " +  column + ", char: " + (selection.InsertionPositionIndex + 1);
         }
 
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)

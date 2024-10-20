@@ -19,7 +19,7 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <Border BorderThickness="1,1,1,0" BorderBrush="#282828">
-                <local:TextView DataContext="{Binding}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+                <local:TextView DataContext="{Binding}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch" Cursor="IBeam"/>
             </Border>
             <Border Grid.Row="1" BorderThickness="0,1,1,0" BorderBrush="#282828">
                 <local:StatusBarView DataContext="{Binding}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"/>
