@@ -598,6 +598,7 @@ namespace Editor.ViewModel
                     ));
                 }
             }
+            this.NotifyPropertyChanged(nameof(this.Highlights));
 
             var cursors = CursorViewModel.CalculateCursors(
                 this.Rope,
