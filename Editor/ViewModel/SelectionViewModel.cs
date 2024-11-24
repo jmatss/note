@@ -1,7 +1,6 @@
 ﻿using Editor.Range;
-using Note.Rope;
 using System.Windows.Media;
-using System.Windows.Shapes;
+using Text;
 
 namespace Editor.ViewModel
 {
@@ -30,21 +29,21 @@ namespace Editor.ViewModel
 
         public static IEnumerable<SelectionViewModel> CalculateSelections(
             IEnumerable<LineViewModel> lines,
-            IEnumerable<SelectionRange> selectionRanges,
+            IEnumerable<RangeBase> ranges,
             Brush brush
         )
         {
             List<SelectionViewModel> selections = new List<SelectionViewModel>();
 
-            foreach (SelectionRange selectionRange in selectionRanges)
+            foreach (RangeBase range in ranges)
             {
-                if (selectionRange.Length == 0)
+                if (range.Length == 0)
                 {
                     continue;
                 }
 
-                int selectionStartIdx = selectionRange.Start;
-                int selectionEndIdx = selectionRange.End;
+                int selectionStartIdx = range.Start;
+                int selectionEndIdx = range.End;
 
                 foreach (LineViewModel line in lines)
                 {

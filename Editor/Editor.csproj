@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Rope\Rope.csproj" />
+    <ProjectReference Include="..\Rope\Text.csproj" />
   </ItemGroup>
 
 </Project>

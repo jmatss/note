@@ -1,6 +1,6 @@
-﻿using Note.Rope;
-using Editor.Range;
+﻿using Editor.Range;
 using System.Windows.Media;
+using Text;
 
 namespace Editor.ViewModel
 {

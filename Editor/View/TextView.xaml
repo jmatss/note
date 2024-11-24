@@ -10,14 +10,12 @@
              DataContextChanged="UserControl_DataContextChanged"
              d:DesignHeight="450" d:DesignWidth="800">
     <UserControl.Resources>
-        <!--
-        <Storyboard x:Key="CursorBlinking">
-            <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Duration="0:0:1.2" RepeatBehavior="Forever">
-                <DiscreteDoubleKeyFrame Value="0" KeyTime="0:0:0.6"/>
-                <DiscreteDoubleKeyFrame Value="1" KeyTime="0:0:1.2"/>
-            </DoubleAnimationUsingKeyFrames>
-        </Storyboard>
-        -->
+        <!-- Wavy underline brush: https://stackoverflow.com/a/633680 -->
+        <VisualBrush x:Key="DiagnosticsBrushRed" Viewport="0,0,6,2" ViewportUnits="Absolute" TileMode="Tile">
+            <VisualBrush.Visual>
+                <Path Data="M0 0 3 2 6 0" Stroke="Red" StrokeThickness="0.5" StrokeEndLineCap="Square" StrokeStartLineCap="Square"/>
+            </VisualBrush.Visual>
+        </VisualBrush>
     </UserControl.Resources>
 
     <Border Padding="{x:Static local:TextView.TextSpacing}">

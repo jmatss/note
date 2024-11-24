@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.Windows.Media;
 using System.Windows;
-using Note.Rope;
+using Text;
 
 namespace Editor.ViewModel
 {

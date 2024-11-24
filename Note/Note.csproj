@@ -10,7 +10,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Editor\Editor.csproj" />
-    <ProjectReference Include="..\Rope\Rope.csproj" />
+    <ProjectReference Include="..\LanguageServer\LanguageServer.csproj" />
+    <ProjectReference Include="..\Rope\Text.csproj" />
   </ItemGroup>
 
 </Project>
