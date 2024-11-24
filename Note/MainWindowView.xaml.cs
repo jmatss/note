@@ -34,5 +34,10 @@ namespace Note
         {
             this.ViewModel.OpenFile();
         }
+
+        private void MenuItem_Lsp_Click(object sender, RoutedEventArgs e)
+        {
+            this.ViewModel.OpenLspWindow();
+        }
     }
 }

@@ -33,89 +33,6 @@ namespace Note
             this.Settings.Todo_Freeze();
         }
 
-
-
-
-
-
-
-
-
-
-        private async Task Abc(Uri textDocumentUri, Rope rope)
-        {
-            // var uri = "D:\\tmp\\jsoup\\target\\surefire-reports\\TEST-org.jsoup.select.XpathTest.xml";
-            string serverPath;
-            //serverPath = "C:\\Users\\jonathan\\Downloads\\lemminx-win32.exe";
-            serverPath = "D:\\AAA_skit\\projekt\\lemminx\\org.eclipse.lemminx\\target\\lemminx-windows-x86_64-0.28.0.exe";
-            CancellationTokenSource tokenSource = new CancellationTokenSource();
-            var messageReader = new MessageReader();
-
-            this.LspClient = new ProcessLspClient(
-                "xml",
-                null,
-                serverPath,
-                messageReader,
-                tokenSource.Token
-            );
-
-            messageReader.AddNotificationHandler<PublishDiagnosticParams>(
-                "textDocument/publishDiagnostics",
-                (x) =>
-                {
-                    var uri = x.Uri;
-                    var diagnostics = LspDiagnosticsToDiagnostics(this.FileViewModel.Rope, x.Diagnostics);
-                    // TODO: Get STA thread from somewhere.
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        this.FileViewModel.HandleDiagnostics(diagnostics);
-                    });
-                },
-                (error) => { }
-            );
-
-            this.LspClient.StartServer();
-            await this.LspClient.Initialize();
-            await this.LspClient.DidOpen(textDocumentUri);
-            rope.OnModification += (modification) =>
-            {
-                RangeBase range;
-                string text;
-
-                if (modification is InsertModification insert)
-                {
-                    range = new RangeBase(insert.StartIdx, insert.StartIdx);
-                    text = rope.GetText(insert.StartIdx, insert.Length);
-                }
-                else if (modification is RemoveModification remove)
-                {
-                    range = new RangeBase(remove.StartIdx, remove.StartIdx + remove.Length);
-                    text = string.Empty;
-                }
-                else if (modification is ReplaceModification replace)
-                {
-                    range = new RangeBase(replace.Remove.StartIdx, replace.Remove.StartIdx + replace.Remove.Length);
-                    text = rope.GetText(replace.Insert.StartIdx, replace.Insert.Length);
-                }
-                else
-                {
-                    throw new InvalidOperationException("Unknown modification type: " + modification.GetType());
-                }
-
-                this.LspClient.DidChange(
-                    this.FileViewModel.TextDocumentUri,
-                    [
-                        new TextDocumentContentChangeEvent()
-                        {
-                            Range = RangeToLspRange(rope, range),
-                            RangeLength = range.Length,
-                            Text = text,
-                        }
-                    ]
-                );
-            };
-        }
-
         public static int LspPositionToCharIdx(Rope rope, Position lspPosition)
         {
             int startCharIdx = rope.GetFirstCharIndexAtLineWithIndex(lspPosition.Line);
@@ -173,7 +90,7 @@ namespace Note
             };
         }
 
-        public ILspClient LspClient { get; set; }
+        public LspManager LspManager { get; } = new LspManager();
 
 
 
@@ -247,7 +164,6 @@ namespace Note
                 var rope = Rope.FromStream(streamReader.BaseStream, streamReader.CurrentEncoding);
                 var textDocumentUri = new Uri(filepath);
                 this.FileViewModel?.Load(rope, textDocumentUri);
-                Abc(textDocumentUri, rope);
             }
         }
 
@@ -264,7 +180,17 @@ namespace Note
         {
             if (this.SearchWindow == null)
             {
-                var searchWindowViewModel = new SearchWindowViewModel(this.Settings, this.OnFind);
+                var searchWindowViewModel = new SearchWindowViewModel(this.Settings, (textToFind) =>
+                {
+                    if (this.FileViewModel != null)
+                    {
+                        bool wasFound = this.FileViewModel.FindAndNavigateToText(textToFind);
+                        if (!wasFound)
+                        {
+                            MessageBox.Show("Unable to find \"" + textToFind + "\"");
+                        }
+                    }
+                });
                 var searchWindowView = new SearchWindow(searchWindowViewModel);
                 this.SearchWindow = (searchWindowView, searchWindowViewModel);
                 searchWindowView.Closed += (_1, _2) => this.SearchWindow = null;
@@ -281,19 +207,101 @@ namespace Note
             {
                 string? text = this.FileViewModel?.Rope.GetText(selectedText.Start, selectedText.Length);
                 this.SearchWindow.Value.Item2.Find = text;
+
             }
         }
 
-        public void OnFind(string textToFind)
+        public void OpenLspWindow()
         {
-            if (this.FileViewModel != null)
+            var lspWindowViewModel = new LspWindowViewModel(async (languageId, serverPath, lspUri) =>
             {
-                bool wasFound = this.FileViewModel.FindAndNavigateToText(textToFind);
-                if (!wasFound)
+                var lspClient = await this.LaunchLsp(languageId, serverPath, lspUri);
+                this.LspManager.Add(lspUri, lspClient);
+
+                // TODO: Go through open files and call `DidOpen` on the LSP client for all matching files.
+                
+                await lspClient.DidOpen(this.FileViewModel.TextDocumentUri);
+            });
+            var lspWindowView = new LspWindow(lspWindowViewModel);
+            lspWindowView.Owner = Application.Current.MainWindow;
+            _ = lspWindowView.ShowDialog();
+        }
+
+        private async Task<ILspClient> LaunchLsp(string languageId, string serverPath, LspUri lspUri)
+        {
+            CancellationTokenSource tokenSource = new CancellationTokenSource();
+            var messageReader = new MessageReader();
+
+            var lspClient = new ProcessLspClient(
+                languageId,
+                null,
+                serverPath,
+                messageReader,
+                tokenSource.Token
+            );
+
+            messageReader.AddNotificationHandler<PublishDiagnosticParams>(
+                "textDocument/publishDiagnostics",
+                (x) =>
                 {
-                    MessageBox.Show("Unable to find \"" + textToFind + "\"");
+                    var uri = x.Uri;
+                    // TODO: Change this so that it works for multiple files. Currently we take the rope
+                    //       of the textdocument that is open, but this will not work in the future.
+                    var diagnostics = LspDiagnosticsToDiagnostics(this.FileViewModel.Rope, x.Diagnostics);
+                    // TODO: Get STA thread from somewhere.
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        this.FileViewModel.HandleDiagnostics(diagnostics);
+                    });
+                },
+                (error) => { }
+            );
+
+            lspClient.StartServer();
+            await lspClient.Initialize();
+
+            // TODO: Change this so that it works for multiple files. Currently we take the rope
+            //       of the textdocument that is open, but this will not work in the future.
+            Rope rope = this.FileViewModel.Rope;
+            rope.OnModification += async (modification) =>
+            {
+                RangeBase range;
+                string text;
+
+                if (modification is InsertModification insert)
+                {
+                    range = new RangeBase(insert.StartIdx, insert.StartIdx);
+                    text = rope.GetText(insert.StartIdx, insert.Length);
                 }
-            }
+                else if (modification is RemoveModification remove)
+                {
+                    range = new RangeBase(remove.StartIdx, remove.StartIdx + remove.Length);
+                    text = string.Empty;
+                }
+                else if (modification is ReplaceModification replace)
+                {
+                    range = new RangeBase(replace.Remove.StartIdx, replace.Remove.StartIdx + replace.Remove.Length);
+                    text = rope.GetText(replace.Insert.StartIdx, replace.Insert.Length);
+                }
+                else
+                {
+                    throw new InvalidOperationException("Unknown modification type: " + modification.GetType());
+                }
+
+                await lspClient.DidChange(
+                    this.FileViewModel.TextDocumentUri,
+                    [
+                        new TextDocumentContentChangeEvent()
+                        {
+                            Range = RangeToLspRange(rope, range),
+                            RangeLength = range.Length,
+                            Text = text,
+                        }
+                    ]
+                );
+            };
+
+            return lspClient;
         }
 
         // TODO: Move to somewhere else

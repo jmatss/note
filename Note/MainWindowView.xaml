@@ -54,6 +54,7 @@
                     </Menu.Resources>
                     <MenuItem Header="File" Foreground="#bbbbbb">
                         <MenuItem Header="Open" Click="MenuItem_Open_Click"/>
+                        <MenuItem Header="LSP" Click="MenuItem_Lsp_Click"/>
                     </MenuItem>
                     <MenuItem Header="Edit" Foreground="#bbbbbb">
                         <MenuItem Header=""/>
