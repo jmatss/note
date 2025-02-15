@@ -88,33 +88,9 @@ namespace Editor.ViewModel
 
         public List<CursorViewModel> Cursors { get; } = new List<CursorViewModel>();
 
-        private double viewWidth;
-        public double ViewWidth
-        {
-            get => this.viewWidth;
-            set
-            {
-                if (value != this.viewWidth)
-                {
-                    this.viewWidth = value;
-                    this.Recalculate(false);
-                }
-            }
-        }
+        public double ViewWidth { get; set; }
 
-        private double viewHeight;
-        public double ViewHeight
-        {
-            get => this.viewHeight;
-            set
-            {
-                if (value != this.viewHeight)
-                {
-                    this.viewHeight = value;
-                    this.Recalculate(false);
-                }
-            }
-        }
+        public double ViewHeight { get; set; }
 
         public GlyphTypeface? GlyphTypeFace { get; private set; }
 
@@ -127,7 +103,6 @@ namespace Editor.ViewModel
             this.ResetSelections();
             this.Rope = rope;
             this.TextDocumentUri = textDocumentUri;
-            this.Recalculate(false, 0);
         }
 
         public void HandleNavigation(Key key, Modifiers modifiers)

@@ -19,6 +19,6 @@
     </UserControl.Resources>
 
     <Border Padding="{x:Static local:TextView.TextSpacing}">
-        <Border Grid.Column="2" Background="Transparent" MouseLeftButtonDown="Text_MouseLeftButtonDown" MouseLeftButtonUp="Text_MouseLeftButtonUp" MouseMove="Text_MouseMove" editor:SizeObserver.Observe="True" editor:SizeObserver.ObservedWidth="{Binding ViewWidth, Mode=OneWayToSource}" editor:SizeObserver.ObservedHeight="{Binding ViewHeight, Mode=OneWayToSource}"/>
+        <Border x:Name="TextArea" Grid.Column="2" Background="Transparent" SizeChanged="Border_SizeChanged" MouseLeftButtonDown="Text_MouseLeftButtonDown" MouseLeftButtonUp="Text_MouseLeftButtonUp" MouseMove="Text_MouseMove"/>
     </Border>
 </UserControl>

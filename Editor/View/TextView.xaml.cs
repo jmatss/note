@@ -38,6 +38,9 @@ namespace Editor.View
             {
                 vm.OnDraw += this.Draw;
                 vm.OnDrawSelections += this.DrawSelections;
+                this.ViewModel.ViewWidth = this.TextArea.ActualWidth;
+                this.ViewModel.ViewHeight = this.TextArea.ActualHeight;
+                this.ViewModel.Recalculate(true);
             }
         }
 
@@ -211,6 +214,22 @@ namespace Editor.View
         public static Point GetPosition(object sender, MouseEventArgs e)
         {
             return e.GetPosition(sender as IInputElement);
+        }
+
+        private void Border_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (this.ViewModel == null)
+            {
+                return;
+            }
+
+            bool isNewSize = this.ViewModel.ViewWidth != e.NewSize.Width || this.ViewModel.ViewHeight != e.NewSize.Height;
+            if (isNewSize)
+            {
+                this.ViewModel.ViewWidth = e.NewSize.Width;
+                this.ViewModel.ViewHeight = e.NewSize.Height;
+                this.ViewModel.Recalculate(false);
+            }
         }
     }
 }

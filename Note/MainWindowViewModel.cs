@@ -29,7 +29,6 @@ namespace Note
         public MainWindowViewModel(Settings settings)
         {
             this.Settings = settings;
-            this.FileViewModel = new FileViewModel(settings);
             this.Settings.Todo_Freeze();
         }
 
@@ -104,7 +103,33 @@ namespace Note
 
         public Settings Settings { get; }
 
-        public FileViewModel FileViewModel { get; }
+        private TabsContainerViewModel _tabsContainer = new TabsContainerViewModel();
+        public TabsContainerViewModel TabsContainer
+        {
+            get => this._tabsContainer;
+            set
+            {
+                this._tabsContainer = value;
+                this.NotifyPropertyChanged();
+            }
+        }
+
+        private FileViewModel? _focusedFile;
+        public FileViewModel? FocusedFile
+        {
+            get => this._focusedFile;
+            set
+            {
+                if (this.FocusedFile == value)
+                {
+                    return;
+                }
+
+                this._focusedFile = value;
+                value?.Recalculate(false);
+                this.NotifyPropertyChanged();
+            }
+        }
 
         public (SearchWindow, SearchWindowViewModel)? SearchWindow { get; private set; }
 
@@ -126,7 +151,7 @@ namespace Note
             set
             {
                 this.Settings.DrawCustomChars = value;
-                this.FileViewModel.Recalculate(false);
+                this.TabsContainer.RunOnAllVisibileFiles(x => x.Recalculate(false));
                 this.NotifyPropertyChanged();
             }
         }
@@ -137,7 +162,7 @@ namespace Note
             set
             {
                 this.Settings.UseUnixLineBreaks = !value;
-                this.FileViewModel.Recalculate(false);
+                this.TabsContainer.RunOnAllVisibileFiles(x => x.Recalculate(false));
                 this.NotifyPropertyChanged();
             }
         }
@@ -161,9 +186,25 @@ namespace Note
             {
                 streamReader.Peek(); // Peek to set `CurrentEncoding`
                 streamReader.BaseStream.Position = 0;
+
+                var fileViewModel = new FileViewModel(this.Settings);
                 var rope = Rope.FromStream(streamReader.BaseStream, streamReader.CurrentEncoding);
                 var textDocumentUri = new Uri(filepath);
-                this.FileViewModel?.Load(rope, textDocumentUri);
+                fileViewModel.Load(rope, textDocumentUri);
+
+                var tabsViewModel = this.FocusedFile != null ? this.TabsContainer.FocusedTabsViewModel(this.FocusedFile) : null;
+                if (tabsViewModel == null)
+                {
+                    tabsViewModel = new TabsViewModel([fileViewModel], this.OnGotFocus, this.OnRemove);
+                    this.TabsContainer = new TabsContainerViewModel(tabsViewModel);
+                }
+                else
+                {
+                    tabsViewModel.Tabs.Add(fileViewModel);
+                    tabsViewModel.SelectedIndex = tabsViewModel.Tabs.Count - 1;
+                }
+
+                this._focusedFile = fileViewModel;
             }
         }
 
@@ -182,13 +223,13 @@ namespace Note
             {
                 var searchWindowViewModel = new SearchWindowViewModel(this.Settings, (textToFind) =>
                 {
-                    if (this.FileViewModel != null)
+                    if (this.FocusedFile == null)
                     {
-                        bool wasFound = this.FileViewModel.FindAndNavigateToText(textToFind);
-                        if (!wasFound)
-                        {
-                            MessageBox.Show("Unable to find \"" + textToFind + "\"");
-                        }
+                        MessageBox.Show("No file selected in UI");
+                    }
+                    else if (!this.FocusedFile.FindAndNavigateToText(textToFind))
+                    {
+                        MessageBox.Show("Unable to find \"" + textToFind + "\"");
                     }
                 });
                 var searchWindowView = new SearchWindow(searchWindowViewModel);
@@ -202,12 +243,11 @@ namespace Note
                 this.SearchWindow.Value.Item1.Activate();
             }
 
-            SelectionRange? selectedText = this.FileViewModel?.Selections.FirstOrDefault();
+            SelectionRange? selectedText = this.FocusedFile?.Selections.FirstOrDefault();
             if (selectedText != null && selectedText.Length > 0)
             {
-                string? text = this.FileViewModel?.Rope.GetText(selectedText.Start, selectedText.Length);
+                string? text = this.FocusedFile?.Rope.GetText(selectedText.Start, selectedText.Length);
                 this.SearchWindow.Value.Item2.Find = text;
-
             }
         }
 
@@ -219,8 +259,15 @@ namespace Note
                 this.LspManager.Add(lspUri, lspClient);
 
                 // TODO: Go through open files and call `DidOpen` on the LSP client for all matching files.
-                
-                await lspClient.DidOpen(this.FileViewModel.TextDocumentUri);
+
+                if (this.FocusedFile == null)
+                {
+                    MessageBox.Show("No file selected in UI");
+                }
+                else
+                {
+                    await lspClient.DidOpen(this.FocusedFile.TextDocumentUri);
+                }                
             });
             var lspWindowView = new LspWindow(lspWindowViewModel);
             lspWindowView.Owner = Application.Current.MainWindow;
@@ -245,13 +292,20 @@ namespace Note
                 (x) =>
                 {
                     var uri = x.Uri;
+
+                    if (this.FocusedFile == null)
+                    {
+                        MessageBox.Show("No file selected in UI");
+                        return;
+                    }
+
                     // TODO: Change this so that it works for multiple files. Currently we take the rope
                     //       of the textdocument that is open, but this will not work in the future.
-                    var diagnostics = LspDiagnosticsToDiagnostics(this.FileViewModel.Rope, x.Diagnostics);
+                    var diagnostics = LspDiagnosticsToDiagnostics(this.FocusedFile.Rope, x.Diagnostics);
                     // TODO: Get STA thread from somewhere.
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        this.FileViewModel.HandleDiagnostics(diagnostics);
+                        this.FocusedFile.HandleDiagnostics(diagnostics);
                     });
                 },
                 (error) => { }
@@ -260,9 +314,14 @@ namespace Note
             lspClient.StartServer();
             await lspClient.Initialize();
 
+            if (this.FocusedFile == null)
+            {
+                throw new NotImplementedException("TODO: No file selected in UI");
+            }
+
             // TODO: Change this so that it works for multiple files. Currently we take the rope
             //       of the textdocument that is open, but this will not work in the future.
-            Rope rope = this.FileViewModel.Rope;
+            Rope rope = this.FocusedFile.Rope;
             rope.OnModification += async (modification) =>
             {
                 RangeBase range;
@@ -288,8 +347,13 @@ namespace Note
                     throw new InvalidOperationException("Unknown modification type: " + modification.GetType());
                 }
 
+                if (this.FocusedFile == null)
+                {
+                    throw new NotImplementedException("TODO: No file selected in UI");
+                }
+
                 await lspClient.DidChange(
-                    this.FileViewModel.TextDocumentUri,
+                    this.FocusedFile.TextDocumentUri,
                     [
                         new TextDocumentContentChangeEvent()
                         {
@@ -309,7 +373,13 @@ namespace Note
         {
             if (!string.IsNullOrEmpty(text) && !char.IsControl(text.First()))
             {
-                this.Write(text);
+                if (this.FocusedFile == null)
+                {
+                    MessageBox.Show("No file selected in UI");
+                    return true;
+                }
+
+                this.Write(this.FocusedFile, text);
                 return true;
             }
             else
@@ -323,6 +393,15 @@ namespace Note
         {
             bool isHandled = true;
 
+            if (this.FocusedFile == null)
+            {
+                MessageBox.Show("No file selected in UI");
+                return true;
+            }
+
+            // TODO: Handle if no file selected/focused
+            FileViewModel fileViewModel = this.FocusedFile;
+
             switch (key)
             {
                 case Key.A when modifiers.Ctrl:
@@ -334,25 +413,25 @@ namespace Note
                 case Key.Next:
                 case Key.End:
                 case Key.Home:
-                    this.FileViewModel?.HandleNavigation(key, modifiers);
+                    fileViewModel.HandleNavigation(key, modifiers);
                     break;
 
                 case Key.Back:
                 case Key.Delete:
-                    this.Delete(key, modifiers);
+                    this.Delete(fileViewModel, key, modifiers);
                     break;
 
                 case Key.Enter:
                 case Key.LineFeed:
-                    this.Write(this.Settings.UseUnixLineBreaks ? "\n" : "\r\n");
+                    this.Write(fileViewModel, this.Settings.UseUnixLineBreaks ? "\n" : "\r\n");
                     break;
 
                 case Key.Tab:
-                    this.Write(this.Settings.TabString);
+                    this.Write(fileViewModel, this.Settings.TabString);
                     break;
 
                 case Key.C when modifiers.Ctrl:
-                    string? copyText = this.FileViewModel?.Read();
+                    string? copyText = fileViewModel.Read();
                     if (!string.IsNullOrEmpty(copyText))
                     {
                         Clipboard.SetText(copyText);
@@ -361,25 +440,25 @@ namespace Note
 
                 case Key.V when modifiers.Ctrl:
                     string pasteText = Clipboard.GetText();
-                    this.Write(pasteText);
+                    this.Write(fileViewModel, pasteText);
                     break;
 
                 case Key.X when modifiers.Ctrl:
-                    string? cutText = this.FileViewModel?.Read();
+                    string? cutText = fileViewModel.Read();
                     if (!string.IsNullOrEmpty(cutText))
                     {
                         Clipboard.SetText(cutText);
-                        this.Write(string.Empty);
+                        this.Write(fileViewModel, string.Empty);
                     }
                     break;
 
                 case Key.Z when modifiers.Ctrl:
-                    int newSelectionIndex = this.FileViewModel.Rope.Undo();
+                    int newSelectionIndex = fileViewModel.Rope.Undo();
                     if (newSelectionIndex != -1)
                     {
-                        SelectionRange selection = this.FileViewModel.ResetSelections();
+                        SelectionRange selection = fileViewModel.ResetSelections();
                         selection.Update(new SelectionRange(newSelectionIndex));
-                        this.FileViewModel.Recalculate(true);
+                        fileViewModel.Recalculate(true);
                     }
                     break;
 
@@ -399,39 +478,39 @@ namespace Note
             return isHandled;
         }
 
-        public void Write(string text)
+        public void Write(FileViewModel fileViewModel, string text)
         {
             // Update selections in reverse order so that the changes doesn't affect each other.
-            var selections = this.FileViewModel.Selections.Reverse<SelectionRange>();
-            var rope = this.FileViewModel.Rope;
+            var selections = fileViewModel.Selections.Reverse<SelectionRange>();
+            var rope = fileViewModel.Rope;
 
             foreach (SelectionRange selection in selections)
             {
-                SelectionRange newselection = WriteTextToRope(text, this.FileViewModel.Rope, selection);
+                SelectionRange newselection = WriteTextToRope(text, fileViewModel.Rope, selection);
                 // TODO: Can `UpdateSelection` be done in bulk instead of 1-by-1?
-                this.FileViewModel.UpdateSelection(selection, newselection);
+                fileViewModel.UpdateSelection(selection, newselection);
             }
 
-            this.FileViewModel.Recalculate(true);
+            fileViewModel.Recalculate(true);
         }
 
-        public void Delete(Key key, Modifiers modifiers)
+        public void Delete(FileViewModel fileViewModel, Key key, Modifiers modifiers)
         {
             // Update selections in reverse order so that the changes doesn't affect each other.
-            var selections = this.FileViewModel.Selections.Reverse<SelectionRange>();
-            var rope = this.FileViewModel.Rope;
+            var selections = fileViewModel.Selections.Reverse<SelectionRange>();
+            var rope = fileViewModel.Rope;
 
             foreach (SelectionRange selection in selections)
             {
-                var result = DeleteTextFromRope(this.FileViewModel.Rope, key, modifiers, selection);
+                var result = DeleteTextFromRope(fileViewModel.Rope, key, modifiers, selection);
                 if (result is (SelectionRange newselection, RangeBase removedRange))
                 {
                     // TODO: Can `UpdateSelection` be done in bulk instead of 1-by-1?
-                    this.FileViewModel.UpdateSelection(selection, newselection);
+                    fileViewModel.UpdateSelection(selection, newselection);
                 }
             }
 
-            this.FileViewModel.Recalculate(true);
+            fileViewModel.Recalculate(true);
         }
 
         private static SelectionRange WriteTextToRope(
@@ -540,6 +619,83 @@ namespace Note
             var removedRange = new RangeBase(startIdx, startIdx + charAmountToRemove);
 
             return (newSelection, removedRange);
+        }
+
+        private void OnRemove(FileViewModel fileViewModel)
+        {
+            bool childToRemoveIsFocused = this.FocusedFile == fileViewModel;
+            if (childToRemoveIsFocused)
+            {
+                // TODO: If we remove the focused file, we need to select a new one to focus.
+                //       Otherwise some logic might break, e.g. when loading in a new file
+                //       and there are no Tabs focused, so it overwrites the root.
+                this.FocusedFile = null;
+            }
+
+            bool removeChild = this.Remove(this.TabsContainer, fileViewModel);
+            if (removeChild)
+            {
+                this.TabsContainer = new TabsContainerViewModel();
+            }
+        }
+
+        /// <summary>
+        /// Recursively iterate through the "tabs container" structure and remove the specified
+        /// `fileViewModel` and at the same time prune parents that might become unnecessary after
+        /// the removal of the child.
+        /// </summary>
+        /// <param name="containerViewModel"></param>
+        /// <param name="fileViewModel"></param>
+        /// <returns></returns>
+        private bool Remove(TabsContainerViewModel containerViewModel, FileViewModel fileViewModel)
+        {
+            if (containerViewModel.Child is TabsViewModel child)
+            {
+                int index = child.Tabs.IndexOf(fileViewModel);
+                if (index == -1)
+                {
+                    return false;
+                }
+                else if (child.Tabs.Count == 1)
+                {
+                    // Last tab in this TabsViewModel of tabs, the caller will remove this whole TabsViewModel
+                    // and its parent TabsContainerViewModel, so we don't need to do any modifications in here.
+                    return true;
+                }
+                else
+                {
+                    if (child.SelectedIndex < index)
+                    {
+                        child.Tabs.RemoveAt(index);
+                    }
+                    else // if (child.SelectedIndex <= index)
+                    {
+                        child.Tabs.RemoveAt(index);
+                        child.SelectedIndex--;
+                    }
+
+                    return false;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < containerViewModel.Children.Count; i++)
+                {
+                    bool removeChild = this.Remove(containerViewModel.Children[i], fileViewModel);
+                    if (removeChild)
+                    {
+                        containerViewModel.Children.RemoveAt(i);
+                        return containerViewModel.Children.Count == 0;
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        private void OnGotFocus(FileViewModel? fileViewModel)
+        {
+            this.FocusedFile = fileViewModel;
         }
     }
 }

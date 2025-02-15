@@ -12,7 +12,13 @@
         <DataTemplate DataType="{x:Type vm:FileViewModel}">
             <view:FileView/>
         </DataTemplate>
-        
+        <DataTemplate DataType="{x:Type local:TabsContainerViewModel}">
+            <local:TabsContainerView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type local:TabsViewModel}">
+            <local:TabsView/>
+        </DataTemplate>
+
         <!-- TextBox style -->
         <SolidColorBrush x:Key="TextBox.Static.Border" Color="#282828"/>
         <Color x:Key="TextBox.MouseOver.Border.Color">#484848</Color>
