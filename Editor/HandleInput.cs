@@ -1,8 +1,8 @@
 ﻿using Editor.Range;
 using Editor.ViewModel;
-using Note.Rope;
 using System.Windows;
 using System.Windows.Input;
+using Text;
 
 namespace Editor
 {
@@ -27,51 +27,6 @@ namespace Editor
             }
         }
 
-        public static SelectionRange? HandleSpecialKeys(
-            Rope rope,
-            Key key,
-            Modifiers modifiers,
-            SelectionRange selection,
-            Settings settings,
-            double viewWidth,
-            double charDrawWidth,
-            double charDrawHeight,
-            int previousSelectionColumnIndex
-        )
-        {
-            switch (key)
-            {
-                // Navigation keys
-                case Key.A when modifiers.Ctrl:
-                case Key.Left:
-                case Key.Up:
-                case Key.Right:
-                case Key.Down:
-                case Key.PageUp:
-                case Key.Next:
-                case Key.End:
-                case Key.Home:
-                case Key.Insert:
-                    return MoveSelection(rope, key, modifiers, selection, viewWidth, charDrawWidth, charDrawHeight, previousSelectionColumnIndex);
-
-                // Removal keys
-                case Key.Back:
-                case Key.Delete:
-                    return Delete(rope, key, modifiers, selection);
-
-                // New line keys
-                case Key.Enter:
-                case Key.LineFeed:
-                    return InsertText(rope, selection, settings.UseUnixLineBreaks ? "\n" : "\r\n");
-
-                case Key.Tab:
-                    return InsertText(rope, selection, settings.TabString);
-
-                default:
-                    throw new ArgumentException("Unknown key in Handle: " + key);
-            }
-        }
-
         public static int HandleTextLeftMouseClick(Rope rope, IEnumerable<LineViewModel> lines, Point position)
         {
             return GetInsertionCharIndexFromPosition(rope, lines, position.X, position.Y);
@@ -82,7 +37,7 @@ namespace Editor
             return GetLineIndexFromPosition(rope, lines, position.Y);
         }
 
-        private static SelectionRange? MoveSelection(
+        public static SelectionRange? MoveSelection(
             Rope rope,
             Key key,
             Modifiers modifiers,
@@ -334,140 +289,6 @@ namespace Editor
             }
 
             return newSelection;
-        }
-
-        private static SelectionRange? Delete(
-            Rope rope,
-            Key key,
-            Modifiers modifiers,
-            SelectionRange selection
-        )
-        {
-            switch (key)
-            {
-                case Key.Back:
-                    {
-                        if (selection.Start == 0 && selection.Length == 0)
-                        {
-                            return null;
-                        }
-
-                        int startIdx;
-                        int charAmountToRemove;
-                        if (modifiers.Ctrl)
-                        {
-                            bool skipEndWhitespaces = false;
-                            startIdx = rope.GetCurrentWordStartIndex(selection.InsertionPositionIndex, skipEndWhitespaces);
-                            charAmountToRemove = selection.End - startIdx;
-                        }
-                        else if (selection.Length > 0)
-                        {
-                            startIdx = selection.Start;
-                            charAmountToRemove = selection.Length;
-                        }
-                        else
-                        {
-                            // Not a selection, just want to remove the character to
-                            // the left of the current insertion cursor.
-                            startIdx = selection.Start - 1;
-                            charAmountToRemove = 1;
-                        }
-
-                        if (startIdx > 0 && rope.GetChar(startIdx - 1) == LineViewModel.CARRIAGE_RETURN)
-                        {
-                            startIdx--;
-                            charAmountToRemove++;
-                        }
-
-                        rope.Remove(startIdx, charAmountToRemove);
-
-                        return new SelectionRange(startIdx);
-                    }
-
-                case Key.Delete:
-                    {
-                        int lastIdx = rope.GetTotalCharCount();
-                        if (selection.Start == lastIdx)
-                        {
-                            return null;
-                        }
-
-                        int charAmountToRemove;
-                        if (modifiers.Ctrl)
-                        {
-                            bool skipEndWhitespaces = true;
-                            int endIdx = rope.GetNextWordStartIndex(selection.End, skipEndWhitespaces);
-                            charAmountToRemove = endIdx - selection.Start;
-                        }
-                        else if (selection.Length > 0)
-                        {
-                            charAmountToRemove = selection.Length;
-                        }
-                        else
-                        {
-                            charAmountToRemove = 1;
-                        }
-
-                        int newIdx = selection.Start;
-                        if (newIdx > 0 && newIdx < lastIdx && rope.GetChar(newIdx) == LineViewModel.CARRIAGE_RETURN)
-                        {
-                            charAmountToRemove++;
-                        }
-
-                        rope.Remove(newIdx, charAmountToRemove);
-
-                        return new SelectionRange(newIdx);
-                    }
-
-                default:
-                    throw new Exception("Invalid key in Delete: " + key);
-            }
-        }
-
-        private static SelectionRange InsertNewLine(
-            Rope rope,
-            Key key,
-            SelectionRange selection,
-            bool useUnixLineBreaks
-        )
-        {
-            switch (key)
-            {
-                case Key.Enter:
-                    string lineBreak = useUnixLineBreaks ? "\n" : "\r\n";
-                    if (selection.Length > 0)
-                    {
-                        rope.Replace(selection.Start, selection.Length, lineBreak.AsSpan());
-                    }
-                    else
-                    {
-                        rope.Insert(selection.InsertionPositionIndex, lineBreak.AsSpan());
-                    }
-
-                    int newIdx = selection.Start + lineBreak.Length;
-                    return new SelectionRange(newIdx);
-
-            default:
-                    throw new Exception("Invalid key in Delete: " + key);
-            }
-        }
-
-        private static SelectionRange InsertText(
-            Rope rope,
-            SelectionRange selection,
-            string text
-        )
-        {
-            if (selection.Length > 0)
-            {
-                rope.Replace(selection.Start, selection.Length, text.AsSpan());
-            }
-            else
-            {
-                rope.Insert(selection.InsertionPositionIndex, text.AsSpan());
-            }
-
-            return new SelectionRange(selection.Start + text.Length);
         }
 
         private static SelectionRange? MoveSelectionVerticalWithWordWrap(

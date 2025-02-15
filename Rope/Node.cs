@@ -1,4 +1,4 @@
-﻿namespace Note.Rope
+﻿namespace Text
 {
     public class Node
     {

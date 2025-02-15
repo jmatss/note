@@ -10,7 +10,7 @@ using System.Text;
 // TODO: Should special characters be counted in the `charCount`? Ex.
 //       does `\n` count as a char? Does `\r\n` count as one or two chars?
 
-namespace Note.Rope
+namespace Text
 {
     public class Rope
     {
@@ -22,18 +22,16 @@ namespace Note.Rope
         public static byte[] BOM_BYTES = Encoding.UTF8.GetPreamble();
 
         private readonly Node root;
-        private readonly Stack<IModification> modifications;
-        // When one reverst a change, temporarily store it in this stack.
-        // This can then be used to "ctrl + shift + z" to re-revert the change.
-        // This will be cleared when a new modification is made that isn't an undo.
-        private readonly Stack<IModification> modificationsShift;
+        private readonly ModificationsStack modifications;
 
         private Rope(Node root)
         {
             this.root = root;
-            this.modifications = new Stack<IModification>();
-            this.modificationsShift = new Stack<IModification>();
+            this.modifications = new ModificationsStack((m) => this.OnModification?.Invoke(m));
         }
+
+        public delegate void ModificationHandler(IModification modification);
+        public event ModificationHandler? OnModification;
 
         public static Rope FromString(string str, Encoding encoding)
         {
@@ -135,7 +133,7 @@ namespace Note.Rope
             this.Insert(idx, chars, this.modifications);
         }
 
-        private void Insert(int idx, ReadOnlySpan<char> chars, Stack<IModification> modStack)
+        private void Insert(int idx, ReadOnlySpan<char> chars, ModificationsStack modifications, bool isUndo = false)
         {
             var (leaf, leafIdx) = this.root.GetLeafContainingCharAtIndex(idx);
             if (leaf == null)
@@ -175,10 +173,10 @@ namespace Note.Rope
                 this.Insert(idx + amountOfCharsInserted, bufferRefs, null);
             }
 
-            modStack?.Push(new InsertModification(idx, chars.Length));
+            modifications.Push(new InsertModification(idx, chars.Length), isUndo);
         }
 
-        private void Insert(int idx, ICollection<BufferReference> bufferRefs, Stack<IModification> modStack)
+        private void Insert(int idx, ICollection<BufferReference> bufferRefs, ModificationsStack? modifications, bool isUndo = false)
         {
             this.root.SplitBeforeCharAtIndex(idx);
 
@@ -190,7 +188,7 @@ namespace Note.Rope
 
             leaf.Insert(leafIdx, bufferRefs);
             int charLength = bufferRefs.Select(x => x.Length).Sum();
-            modStack?.Push(new InsertModification(idx, charLength));
+            modifications?.Push(new InsertModification(idx, charLength), isUndo);
         }
 
         public void Remove(int idx, int length)
@@ -198,7 +196,7 @@ namespace Note.Rope
             this.Remove(idx, length, this.modifications);
         }
 
-        private void Remove(int idx, int length, Stack<IModification> modStack)
+        private void Remove(int idx, int length, ModificationsStack modifications, bool isUndo = false)
         {
             this.root.SplitBeforeCharAtIndex(idx);
             this.root.SplitBeforeCharAtIndex(idx + length);
@@ -211,7 +209,7 @@ namespace Note.Rope
                 bufferRefs.Add(leafToRemove.Remove());
             }
 
-            modStack?.Push(new RemoveModification(idx, length, bufferRefs));
+            modifications.Push(new RemoveModification(idx, length, bufferRefs), isUndo);
         }
 
         public void Replace(int idx, int lengthToRemove, ReadOnlySpan<char> charsToInsert)
@@ -219,59 +217,61 @@ namespace Note.Rope
             this.Replace(idx, lengthToRemove, charsToInsert, this.modifications);
         }
 
-        private void Replace(int idx, int lengthToRemove, ReadOnlySpan<char> charsToInsert, Stack<IModification> modStack)
+        private void Replace(int idx, int lengthToRemove, ReadOnlySpan<char> charsToInsert, ModificationsStack modifications, bool isUndo = false)
         {
-            Stack<IModification> localModStack = new Stack<IModification>();
+            ModificationsStack localModifications = new ModificationsStack(null);
 
-            this.Remove(idx, lengthToRemove, localModStack);
-            if (localModStack.Count != 1 || !(localModStack.Pop() is RemoveModification remove))
+            this.Remove(idx, lengthToRemove, localModifications);
+            if (!(localModifications.Pop(false) is RemoveModification remove))
             {
                 // TODO:
                 throw new Exception("Not RemoveModification after Remove in Replace(chars)");
             }
 
-            this.Insert(idx, charsToInsert, localModStack);
-            if (localModStack.Count != 1 || !(localModStack.Pop() is InsertModification insert))
+            this.Insert(idx, charsToInsert, localModifications);
+            if (!(localModifications.Pop(false) is InsertModification insert))
             {
                 // TODO:
                 throw new Exception("Not InsertModification after Insert in Replace(chars)");
             }
 
-            modStack?.Push(new ReplaceModification(remove, insert));
+            modifications.Push(new ReplaceModification(remove, insert), isUndo);
         }
 
-        private void Replace(int idx, int lengthToRemove, ICollection<BufferReference> bufferRefsToInsert, Stack<IModification> modStack)
+        private void Replace(int idx, int lengthToRemove, ICollection<BufferReference> bufferRefsToInsert, ModificationsStack modifications, bool isUndo = false)
         {
-            Stack<IModification> localModStack = new Stack<IModification>();
+            ModificationsStack localModifications = new ModificationsStack(null);
 
-            this.Remove(idx, lengthToRemove, localModStack);
-            if (localModStack.Count != 1 || !(localModStack.Pop() is RemoveModification remove))
+            this.Remove(idx, lengthToRemove, localModifications);
+            if (!(localModifications.Pop(false) is RemoveModification remove))
             {
                 // TODO:
                 throw new Exception("Not RemoveModification after in Replace(bufferRefs)");
             }
 
-            this.Insert(idx, bufferRefsToInsert, localModStack);
-            if (localModStack.Count != 1 || !(localModStack.Pop() is InsertModification insert))
+            this.Insert(idx, bufferRefsToInsert, localModifications);
+            if (!(localModifications.Pop(false) is InsertModification insert))
             {
                 // TODO:
                 throw new Exception("Not InsertModification after Insert in Replace(bufferRefs)");
             }
 
-            modStack?.Push(new ReplaceModification(remove, insert));
+            localModifications.Push(new ReplaceModification(remove, insert), isUndo);
         }
 
         public int Undo()
         {
-            if (this.modifications.Count == 0)
+            IModification? modification = this.modifications.Pop(false);
+            if (modification == null)
             {
                 return -1;
             }
 
-            IModification modification = this.modifications.Pop();
+            bool isUndo = true;
+
             if (modification is InsertModification insert)
             {
-                this.Remove(insert.StartIdx, insert.Length, this.modificationsShift);
+                this.Remove(insert.StartIdx, insert.Length, this.modifications, isUndo);
                 return insert.StartIdx;
             }
             else if (modification is InsertModifications inserts)
@@ -280,7 +280,7 @@ namespace Note.Rope
             }
             else if (modification is RemoveModification remove)
             {
-                this.Insert(remove.StartIdx, remove.BufferRefs, this.modificationsShift);
+                this.Insert(remove.StartIdx, remove.BufferRefs, this.modifications, isUndo);
                 return remove.StartIdx + remove.Length;
             }
             else if (modification is RemoveModifications removes)
@@ -291,7 +291,7 @@ namespace Note.Rope
             {
                 InsertModification ins = replace.Insert;
                 RemoveModification rem = replace.Remove;
-                this.Replace(ins.StartIdx, ins.Length, rem.BufferRefs, this.modificationsShift);
+                this.Replace(ins.StartIdx, ins.Length, rem.BufferRefs, this.modifications, isUndo);
                 return ins.StartIdx + rem.Length;
             }
             else if (modification is ReplaceModifications replaces)

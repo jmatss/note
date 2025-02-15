@@ -1,6 +1,5 @@
 ﻿using Editor.Range;
 using Editor.View;
-using Note.Rope;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
@@ -10,6 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using Text;
 using static Editor.HandleInput;
 
 namespace Editor.ViewModel
@@ -60,6 +60,8 @@ namespace Editor.ViewModel
             }
         }
 
+        public Uri? TextDocumentUri { get; private set; }
+
         public Settings Settings { get; }
 
         public List<LineViewModel> Lines { get; } = new List<LineViewModel>();
@@ -79,6 +81,10 @@ namespace Editor.ViewModel
         public List<SelectionRange> Highlights { get; } = new List<SelectionRange>();
 
         public List<SelectionViewModel> HighlightsInView { get; } = new List<SelectionViewModel>();
+
+        public List<Diagnostic> Diagnostics { get; } = new List<Diagnostic>();
+
+        public List<SelectionViewModel> DiagnosticsInView { get; } = new List<SelectionViewModel>();
 
         public List<CursorViewModel> Cursors { get; } = new List<CursorViewModel>();
 
@@ -116,19 +122,15 @@ namespace Editor.ViewModel
 
         public Action<double, double>? OnDrawSelections { get; set; }
 
-        public void Load(Rope rope)
+        public void Load(Rope rope, Uri? textDocumentUri)
         {
             this.ResetSelections();
             this.Rope = rope;
+            this.TextDocumentUri = textDocumentUri;
             this.Recalculate(false, 0);
         }
 
-        public void HandlePrintableKeys(string text)
-        {
-            this.Write(text);
-        }
-
-        public void HandleSpecialKeys(Key key, Modifiers modifiers)
+        public void HandleNavigation(Key key, Modifiers modifiers)
         {
             (double charDrawWidth, double charDrawHeight) = FileViewModel.CharacterDrawSize(this.Settings, this.pixelsPerDip);
 
@@ -150,12 +152,11 @@ namespace Editor.ViewModel
 
             foreach (SelectionRange selection in this.Selections)
             {
-               SelectionRange? newSelection = HandleInput.HandleSpecialKeys(
+               SelectionRange? newSelection = HandleInput.MoveSelection(
                     this.Rope,
                     key,
                     modifiers,
                     selection,
-                    this.Settings,
                     this.ViewWidth,
                     charDrawWidth,
                     charDrawHeight,
@@ -298,6 +299,14 @@ namespace Editor.ViewModel
             }
         }
 
+        public void HandleDiagnostics(IEnumerable<Diagnostic> diagnostics)
+        {
+            this.Diagnostics.Clear();
+            this.Diagnostics.AddRange(diagnostics);
+
+            this.RecalculateSelections(true);
+        }
+
         public string? Read()
         {
             if (this.Selections.All(x => x.Length == 0))
@@ -316,17 +325,6 @@ namespace Editor.ViewModel
             }
 
             return string.Join(this.Settings.UseUnixLineBreaks ? "\n" : "\r\n", texts);
-        }
-
-        public void Write(string text)
-        {
-            foreach (SelectionRange selection in this.Selections.Reverse<SelectionRange>())
-            {
-                SelectionRange newselection = WriteText(this.Rope, text, selection);
-                this.UpdateSelection(selection, newselection);
-            }
-
-            this.Recalculate(true);
         }
 
         public bool FindAndNavigateToText(string textToFind)
@@ -579,14 +577,6 @@ namespace Editor.ViewModel
 
                 if (!string.IsNullOrWhiteSpace(textToFind))
                 {
-                    // TODO: Find all highlights in the background for performance reasons.
-                    /*
-                    var highLightRanges = SelectionViewModel.CalculateHighlightsInView(
-                        this.Rope,
-                        this.Lines,
-                        highLightText
-                    );
-                    */
                     this.Highlights.AddRange(SelectionViewModel.CalculateHighlights(
                         this.Rope,
                         textToFind
@@ -599,6 +589,23 @@ namespace Editor.ViewModel
                 }
             }
             this.NotifyPropertyChanged(nameof(this.Highlights));
+
+            this.DiagnosticsInView.Clear();
+            this.DiagnosticsInView.AddRange(SelectionViewModel.CalculateSelections(
+                this.Lines,
+                this.Diagnostics
+                    .Where(x => x.Severity == DiagnosticSeverity.Error)
+                    .Select(x => x.Range),
+                new SolidColorBrush(Color.FromArgb(50, 255, 0, 0))
+            ));
+            this.DiagnosticsInView.AddRange(SelectionViewModel.CalculateSelections(
+                this.Lines,
+                this.Diagnostics
+                    .Where(x => x.Severity == DiagnosticSeverity.Warning)
+                    .Select(x => x.Range),
+                new SolidColorBrush(Color.FromArgb(50, 150, 0, 0))
+            ));
+            this.NotifyPropertyChanged(nameof(this.Diagnostics));
 
             var cursors = CursorViewModel.CalculateCursors(
                 this.Rope,

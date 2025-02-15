@@ -10,7 +10,20 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Editor\Editor.csproj" />
-    <ProjectReference Include="..\Rope\Rope.csproj" />
+    <ProjectReference Include="..\LanguageServer\LanguageServer.csproj" />
+    <ProjectReference Include="..\Rope\Text.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="LspWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="LspWindow.xaml">
+      <SubType>Designer</SubType>
+    </Page>
   </ItemGroup>
 
 </Project>

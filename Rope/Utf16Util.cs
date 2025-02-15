@@ -1,4 +1,4 @@
-﻿namespace Note.Rope
+﻿namespace Text
 {
     internal class Utf16Util
     {

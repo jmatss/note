@@ -1,7 +1,7 @@
 ﻿using Editor.Range;
-using Note.Rope;
 using System.Globalization;
 using System.Windows.Data;
+using Text;
 
 namespace Editor.Converters
 {

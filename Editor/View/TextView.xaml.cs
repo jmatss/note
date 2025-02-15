@@ -64,11 +64,14 @@ namespace Editor.View
 
         public void DrawSelections(double _charDrawWidth, double _charDrawHeight)
         {
+            var errorBrush = (VisualBrush)this.FindResource("DiagnosticsBrushRed");
+
             using (DrawingContext drawingContext = this.drawingGroupSelections.Open())
             {
                 drawingContext.PushTransform(PaddingTransform);
                 DrawSelections(drawingContext, this.ViewModel.HighlightsInView);
                 DrawSelections(drawingContext, this.ViewModel.SelectionsInView);
+                DrawUnderlines(drawingContext, this.ViewModel.DiagnosticsInView, errorBrush);
                 DrawCursors(drawingContext, this.ViewModel.Cursors);
             }
         }
@@ -140,6 +143,24 @@ namespace Editor.View
                         new Size(selectionVm.Width, selectionVm.Height)
                     )
                 );
+            }
+        }
+
+        private static void DrawUnderlines(DrawingContext drawingContext, IEnumerable<SelectionViewModel> selectionVms, VisualBrush brush)
+        {
+            double extraPaddingUnderText = 1;
+            foreach (SelectionViewModel selectionVm in selectionVms)
+            {
+                // https://stackoverflow.com/a/7072004
+                TranslateTransform transform = new TranslateTransform(Math.Round(selectionVm.X), Math.Round(selectionVm.Y + selectionVm.Height - brush.Viewport.Height + extraPaddingUnderText));
+                transform.Freeze();
+                drawingContext.PushTransform(transform);
+                drawingContext.DrawRectangle(
+                    brush,
+                    null,
+                    new Rect(0, 0, Math.Round(selectionVm.Width), brush.Viewport.Height)
+                );
+                drawingContext.Pop();
             }
         }
 

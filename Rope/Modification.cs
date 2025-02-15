@@ -1,8 +1,11 @@
-﻿namespace Note.Rope
+﻿namespace Text
 {
-    internal interface IModification {}
+    public interface IModification
+    {
+        
+    }
 
-    internal readonly struct InsertModification : IModification
+    public readonly struct InsertModification : IModification
     {
         public int StartIdx { get; }
         public int Length { get; }
@@ -14,7 +17,7 @@
         }
     }
 
-    internal readonly struct InsertModifications : IModification
+    public readonly struct InsertModifications : IModification
     {
         public InsertModification Inserts { get; }
 
@@ -24,7 +27,7 @@
         }
     }
 
-    internal readonly struct RemoveModification : IModification
+    public readonly struct RemoveModification : IModification
     {
         public int StartIdx { get; }
         public int Length { get; }
@@ -38,7 +41,7 @@
         }
     }
 
-    internal readonly struct RemoveModifications : IModification
+    public readonly struct RemoveModifications : IModification
     {
         public RemoveModification Removes { get; }
 
@@ -48,7 +51,7 @@
         }
     }
 
-    internal readonly struct ReplaceModification : IModification
+    public readonly struct ReplaceModification : IModification
     {
         public RemoveModification Remove { get; }
         public InsertModification Insert { get; }
@@ -60,7 +63,7 @@
         }
     }
 
-    internal readonly struct ReplaceModifications : IModification
+    public readonly struct ReplaceModifications : IModification
     {
         public ReplaceModification Replaces { get; }
 

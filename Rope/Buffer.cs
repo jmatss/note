@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace Note.Rope
+namespace Text
 {
     public class Buffer
     {

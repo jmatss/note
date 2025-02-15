@@ -1,7 +1,6 @@
-﻿using Note.Rope;
-using System.Diagnostics;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Media;
+using Text;
 
 namespace Editor.ViewModel
 {
