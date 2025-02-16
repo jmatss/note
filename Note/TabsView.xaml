@@ -19,13 +19,16 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <ItemsControl ItemsSource="{Binding Tabs}" Padding="0,0,4,4" Background="#151515" AlternationCount="{Binding Tabs.Count}">
+        <ItemsControl x:Name="HeadersControl" ItemsSource="{Binding Tabs}" Padding="2,2,2,2" Background="#151515" AlternationCount="{Binding Tabs.Count}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Border CornerRadius="4" Padding="4" Margin="4,4,0,0" MouseUp="Header_MouseUp" Tag="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource TemplatedParent}}">
+                    <Border BorderBrush="#264D95" Padding="4" MouseDown="Header_MouseDown" MouseUp="Header_MouseUp" MouseMove="Header_MouseMove" Tag="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource TemplatedParent}}">
                         <Border.Style>
                             <Style TargetType="Border">
                                 <Setter Property="Background" Value="#191919"/>
+                                <Setter Property="Margin" Value="2"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="CornerRadius" Value="4"/>
                                 <Style.Triggers>
                                     <DataTrigger Value="True">
                                         <DataTrigger.Binding>
@@ -39,6 +42,28 @@
                                     <Trigger Property="IsMouseOver" Value="True">
                                         <Setter Property="Background" Value="#353535"/>
                                     </Trigger>
+                                    <DataTrigger Value="True">
+                                        <DataTrigger.Binding>
+                                            <MultiBinding Converter="{StaticResource EqualsToBooleanConverter}">
+                                                <Binding Path="DataContext.CapturedMouseTabIndex" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}"/>
+                                                <Binding Path="(ItemsControl.AlternationIndex)" RelativeSource="{RelativeSource TemplatedParent}"/>
+                                            </MultiBinding>
+                                        </DataTrigger.Binding>
+                                        <Setter Property="Margin" Value="0,2,2,2"/>
+                                        <Setter Property="BorderThickness" Value="2,0,0,0"/>
+                                        <Setter Property="CornerRadius" Value="0,4,4,0"/>
+                                    </DataTrigger>
+                                    <DataTrigger Value="True">
+                                        <DataTrigger.Binding>
+                                            <MultiBinding Converter="{StaticResource EqualsToBooleanConverter}" ConverterParameter="-1">
+                                                <Binding Path="DataContext.CapturedMouseTabIndex" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}"/>
+                                                <Binding Path="(ItemsControl.AlternationIndex)" RelativeSource="{RelativeSource TemplatedParent}"/>
+                                            </MultiBinding>
+                                        </DataTrigger.Binding>
+                                        <Setter Property="Margin" Value="2,2,0,2"/>
+                                        <Setter Property="BorderThickness" Value="0,0,2,0"/>
+                                        <Setter Property="CornerRadius" Value="4,0,0,4"/>
+                                    </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </Border.Style>
@@ -48,7 +73,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="{Binding TextDocumentUri, Converter={StaticResource UriToFilenameConverter}}" Foreground="#ccc" Margin="4,0,4,0"/>
-                            <Border x:Name="XButton" Grid.Column="1" MouseUp="XButton_MouseUp" CornerRadius="4" Tag="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource TemplatedParent}}">
+                            <Border x:Name="XButton" Grid.Column="1" MouseDown="XButton_MouseDown" MouseUp="XButton_MouseUp" CornerRadius="4" Tag="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource TemplatedParent}}">
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Setter Property="Background" Value="Transparent"/>

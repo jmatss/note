@@ -664,11 +664,11 @@ namespace Note
                 }
                 else
                 {
-                    if (child.SelectedIndex < index)
+                    if (child.SelectedIndex < index || child.SelectedIndex == 0)
                     {
                         child.Tabs.RemoveAt(index);
                     }
-                    else // if (child.SelectedIndex <= index)
+                    else // if (child.SelectedIndex >= index)
                     {
                         child.Tabs.RemoveAt(index);
                         child.SelectedIndex--;
