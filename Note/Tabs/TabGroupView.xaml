@@ -20,7 +20,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <ItemsControl x:Name="HeadersControl" ItemsSource="{Binding Tabs}" Padding="2" Background="#151515" AlternationCount="{Binding Tabs.Count}">
+        <ItemsControl x:Name="HeadersControl" ItemsSource="{Binding Tabs}" Padding="2" Background="#151515" AlternationCount="{Binding Tabs.Count}" SnapsToDevicePixels="True">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Border BorderBrush="#264D95" Padding="4" MouseDown="Header_MouseDown" MouseUp="Header_MouseUp" MouseMove="Header_MouseMove" Tag="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource TemplatedParent}}">
@@ -109,7 +109,7 @@
             </ItemsControl.ItemsPanel>
         </ItemsControl>
 
-        <Grid x:Name="ContentGrid" Grid.Row="1">
+        <Grid x:Name="ContentGrid" Grid.Row="1" SnapsToDevicePixels="True">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="*"/>
