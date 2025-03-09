@@ -70,7 +70,7 @@
             <!-- Hack to draw over the default minimize/maximize/exit buttons. Prevent clicking them -->
             <Border Background="Transparent" Width="150" HorizontalAlignment="Right" WindowChrome.IsHitTestVisibleInChrome="True"/>
 
-            <ContentControl Grid.Row="1" Content="{Binding TabsContainer}"/>
+            <ContentControl Grid.Row="1" Content="{Binding TabGroupContainer}"/>
         </Grid>
     </Border>
 </Window>

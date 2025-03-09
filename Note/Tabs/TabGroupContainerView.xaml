@@ -1,0 +1,33 @@
+﻿<UserControl x:Class="Note.Tabs.TabGroupContainerView"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:Note.Tabs"
+      xmlns:converters="clr-namespace:Note.Converters"
+      mc:Ignorable="d" 
+      DataContextChanged="UserControl_DataContextChanged"
+      d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <converters:EnumerableToVisibilityConverter x:Key="EnumerableToVisibilityConverter"/>
+        <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+        <converters:IndexToGridSplitterIndexConverter x:Key="IndexToGridSplitterIndexConverter"/>
+        <converters:SpanToGridSplitterSpanConverter x:Key="SpanToGridSplitterSpanConverter"/>
+    </UserControl.Resources>
+
+    <ItemsControl x:Name="ItemsControl" ItemsSource="{Binding TabGroups}" Background="#191919">
+        <ItemsControl.ItemContainerStyle>
+            <Style>
+                <Setter Property="Grid.Row" Value="{Binding RowIndex, Converter={StaticResource IndexToGridSplitterIndexConverter}}"/>
+                <Setter Property="Grid.Column" Value="{Binding ColumnIndex, Converter={StaticResource IndexToGridSplitterIndexConverter}}"/>
+                <Setter Property="Grid.RowSpan" Value="{Binding RowSpan, Converter={StaticResource SpanToGridSplitterSpanConverter}}"/>
+                <Setter Property="Grid.ColumnSpan" Value="{Binding ColumnSpan, Converter={StaticResource SpanToGridSplitterSpanConverter}}"/>
+            </Style>
+        </ItemsControl.ItemContainerStyle>
+        <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+                <Grid local:TabGridHelpers.RowCount="{Binding RowCount}" local:TabGridHelpers.ColumnCount="{Binding ColumnCount}"/>
+            </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+    </ItemsControl>
+</UserControl>

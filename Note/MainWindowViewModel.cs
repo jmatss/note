@@ -18,18 +18,20 @@ using static Editor.HandleInput;
 using System.Diagnostics;
 using Microsoft.Win32;
 using Text;
+using Note.Tabs;
 
 // TODO: Find clean way to redraw the text on settings changes.
 //       Should be generic for all possible settings changes.
 
 namespace Note
 {
-    public class MainWindowViewModel : INotifyPropertyChanged
+    public class MainWindowViewModel : INotifyPropertyChanged, ITabFocus
     {
         public MainWindowViewModel(Settings settings)
         {
             this.Settings = settings;
             this.Settings.Todo_Freeze();
+            this.TabGroupContainer = new TabGroupContainerViewModel(this);
         }
 
         public static int LspPositionToCharIdx(Rope rope, Position lspPosition)
@@ -103,16 +105,7 @@ namespace Note
 
         public Settings Settings { get; }
 
-        private TabsContainerViewModel _tabsContainer = new TabsContainerViewModel();
-        public TabsContainerViewModel TabsContainer
-        {
-            get => this._tabsContainer;
-            set
-            {
-                this._tabsContainer = value;
-                this.NotifyPropertyChanged();
-            }
-        }
+        public TabGroupContainerViewModel TabGroupContainer { get; }
 
         private FileViewModel? _focusedFile;
         public FileViewModel? FocusedFile
@@ -151,7 +144,7 @@ namespace Note
             set
             {
                 this.Settings.DrawCustomChars = value;
-                this.TabsContainer.RunOnAllVisibileFiles(x => x.Recalculate(false));
+                this.TabGroupContainer.RunOnAllVisibileFiles(x => x.Recalculate(false));
                 this.NotifyPropertyChanged();
             }
         }
@@ -162,7 +155,7 @@ namespace Note
             set
             {
                 this.Settings.UseUnixLineBreaks = !value;
-                this.TabsContainer.RunOnAllVisibileFiles(x => x.Recalculate(false));
+                this.TabGroupContainer.RunOnAllVisibileFiles(x => x.Recalculate(false));
                 this.NotifyPropertyChanged();
             }
         }
@@ -192,18 +185,7 @@ namespace Note
                 var textDocumentUri = new Uri(filepath);
                 fileViewModel.Load(rope, textDocumentUri);
 
-                var tabsViewModel = this.FocusedFile != null ? this.TabsContainer.FocusedTabsViewModel(this.FocusedFile) : null;
-                if (tabsViewModel == null)
-                {
-                    tabsViewModel = new TabsViewModel([fileViewModel], this.OnGotFocus, this.OnRemove);
-                    this.TabsContainer = new TabsContainerViewModel(tabsViewModel);
-                }
-                else
-                {
-                    tabsViewModel.Tabs.Add(fileViewModel);
-                    tabsViewModel.SelectedIndex = tabsViewModel.Tabs.Count - 1;
-                }
-
+                this.TabGroupContainer.AddNewlyOpenedFile(this.FocusedFile, fileViewModel);
                 this._focusedFile = fileViewModel;
             }
         }
@@ -619,83 +601,6 @@ namespace Note
             var removedRange = new RangeBase(startIdx, startIdx + charAmountToRemove);
 
             return (newSelection, removedRange);
-        }
-
-        private void OnRemove(FileViewModel fileViewModel)
-        {
-            bool childToRemoveIsFocused = this.FocusedFile == fileViewModel;
-            if (childToRemoveIsFocused)
-            {
-                // TODO: If we remove the focused file, we need to select a new one to focus.
-                //       Otherwise some logic might break, e.g. when loading in a new file
-                //       and there are no Tabs focused, so it overwrites the root.
-                this.FocusedFile = null;
-            }
-
-            bool removeChild = this.Remove(this.TabsContainer, fileViewModel);
-            if (removeChild)
-            {
-                this.TabsContainer = new TabsContainerViewModel();
-            }
-        }
-
-        /// <summary>
-        /// Recursively iterate through the "tabs container" structure and remove the specified
-        /// `fileViewModel` and at the same time prune parents that might become unnecessary after
-        /// the removal of the child.
-        /// </summary>
-        /// <param name="containerViewModel"></param>
-        /// <param name="fileViewModel"></param>
-        /// <returns></returns>
-        private bool Remove(TabsContainerViewModel containerViewModel, FileViewModel fileViewModel)
-        {
-            if (containerViewModel.Child is TabsViewModel child)
-            {
-                int index = child.Tabs.IndexOf(fileViewModel);
-                if (index == -1)
-                {
-                    return false;
-                }
-                else if (child.Tabs.Count == 1)
-                {
-                    // Last tab in this TabsViewModel of tabs, the caller will remove this whole TabsViewModel
-                    // and its parent TabsContainerViewModel, so we don't need to do any modifications in here.
-                    return true;
-                }
-                else
-                {
-                    if (child.SelectedIndex < index || child.SelectedIndex == 0)
-                    {
-                        child.Tabs.RemoveAt(index);
-                    }
-                    else // if (child.SelectedIndex >= index)
-                    {
-                        child.Tabs.RemoveAt(index);
-                        child.SelectedIndex--;
-                    }
-
-                    return false;
-                }
-            }
-            else
-            {
-                for (int i = 0; i < containerViewModel.Children.Count; i++)
-                {
-                    bool removeChild = this.Remove(containerViewModel.Children[i], fileViewModel);
-                    if (removeChild)
-                    {
-                        containerViewModel.Children.RemoveAt(i);
-                        return containerViewModel.Children.Count == 0;
-                    }
-                }
-
-                return false;
-            }
-        }
-
-        private void OnGotFocus(FileViewModel? fileViewModel)
-        {
-            this.FocusedFile = fileViewModel;
         }
     }
 }
