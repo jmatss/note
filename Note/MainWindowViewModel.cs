@@ -34,6 +34,21 @@ namespace Note
             this.TabGroupContainer = new TabGroupContainerViewModel(this);
         }
 
+        private Thickness _windowMaximizedBorder = new Thickness(8);
+        /// <summary>
+        /// The size of the border around the window when it is maximized.
+        /// Required to resize the window correctly when maximized.
+        /// </summary>
+        public Thickness WindowMaximizedBorder
+        {
+            get => this._windowMaximizedBorder;
+            set
+            {
+                this._windowMaximizedBorder = value;
+                this.NotifyPropertyChanged();
+            }
+        }
+
         public static int LspPositionToCharIdx(Rope rope, Position lspPosition)
         {
             int startCharIdx = rope.GetFirstCharIndexAtLineWithIndex(lspPosition.Line);
