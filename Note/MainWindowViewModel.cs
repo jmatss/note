@@ -423,8 +423,47 @@ namespace Note
                     this.Write(fileViewModel, this.Settings.UseUnixLineBreaks ? "\n" : "\r\n");
                     break;
 
+                case Key.Tab when modifiers.Shift:
+                    {
+                        if (fileViewModel.Selections.Count == 1 &&
+                            fileViewModel.Selections.First() is SelectionRange s &&
+                            fileViewModel.Rope.GetLineIndexForCharAtIndex(s.Start) is int startLineIdx &&
+                            fileViewModel.Rope.GetLineIndexForCharAtIndex(s.End) is int endLineIdx)
+                        {
+                            if (s.End == fileViewModel.Rope.GetFirstCharIndexAtLineWithIndex(endLineIdx))
+                            {
+                                // Don't want to unindent last line if cursor is at start of line.
+                                endLineIdx--;
+                            }
+                            this.DeleteIndents(fileViewModel, s, startLineIdx, endLineIdx);
+                        }
+                        else
+                        {
+                            throw new NotImplementedException("TODO: Shift+tab with != 1 selections");
+                        }
+                    }
+                    break;
+
                 case Key.Tab:
-                    this.Write(fileViewModel, this.Settings.TabString);
+                    {
+                        if (fileViewModel.Selections.Count == 1 &&
+                            fileViewModel.Selections.First() is SelectionRange s &&
+                            fileViewModel.Rope.GetLineIndexForCharAtIndex(s.Start) is int startLineIdx &&
+                            fileViewModel.Rope.GetLineIndexForCharAtIndex(s.End) is int endLineIdx &&
+                            startLineIdx != endLineIdx)
+                        {
+                            if (s.End == fileViewModel.Rope.GetFirstCharIndexAtLineWithIndex(endLineIdx))
+                            {
+                                // Don't want to indent last line if cursor is at start of line.
+                                endLineIdx--;
+                            }
+                            this.WriteIndents(fileViewModel, s, startLineIdx, endLineIdx);
+                        }
+                        else
+                        {
+                            this.Write(fileViewModel, this.Settings.TabString);
+                        }
+                    }
                     break;
 
                 case Key.C when modifiers.Ctrl:
@@ -483,11 +522,39 @@ namespace Note
 
             foreach (SelectionRange selection in selections)
             {
-                SelectionRange newselection = WriteTextToRope(text, fileViewModel.Rope, selection);
+                SelectionRange newSelection = WriteTextToRope(text, fileViewModel.Rope, selection);
                 // TODO: Can `UpdateSelection` be done in bulk instead of 1-by-1?
-                fileViewModel.UpdateSelection(selection, newselection);
+                fileViewModel.UpdateSelection(selection, newSelection);
             }
 
+            fileViewModel.Recalculate(true);
+        }
+
+        public void WriteIndents(FileViewModel fileViewModel, SelectionRange selection, int startLineIdx, int endLineIdx)
+        {
+            Rope rope = fileViewModel.Rope;
+            string tabString = fileViewModel.Settings.TabString;
+
+            for (int i = startLineIdx; i <= endLineIdx; i++)
+            {
+                int charIdx = rope.GetFirstCharIndexAtLineWithIndex(i);
+                _ = WriteTextToRope(tabString, rope, new RangeBase(charIdx, charIdx));
+            }
+
+            int startCharIdx = rope.GetFirstCharIndexAtLineWithIndex(startLineIdx);
+            int endCharIdx;
+            if (endLineIdx == rope.GetTotalLineBreaks())
+            {
+                endCharIdx = rope.GetTotalCharCount() - 1;
+            }
+            else
+            {
+                endCharIdx = rope.GetFirstCharIndexAtLineWithIndex(endLineIdx + 1);
+            }
+
+            var newSelection = new SelectionRange(startCharIdx, endCharIdx, selection.InsertionPosition);
+
+            fileViewModel.UpdateSelection(selection, newSelection);
             fileViewModel.Recalculate(true);
         }
 
@@ -506,6 +573,39 @@ namespace Note
                     fileViewModel.UpdateSelection(selection, newselection);
                 }
             }
+
+            fileViewModel.Recalculate(true);
+        }
+
+        public void DeleteIndents(FileViewModel fileViewModel, SelectionRange selection, int startLineIdx, int endLineIdx)
+        {
+            Rope rope = fileViewModel.Rope;
+            string tabString = fileViewModel.Settings.TabString;
+
+            for (int i = startLineIdx; i <= endLineIdx; i++)
+            {
+                int charIdx = rope.GetFirstCharIndexAtLineWithIndex(i);
+                string lineStartText = rope.GetText(charIdx, tabString.Length);
+                if (string.Equals(lineStartText, tabString, StringComparison.Ordinal))
+                {
+                    rope.Remove(charIdx, tabString.Length);
+                }
+            }
+
+            int startCharIdx = rope.GetFirstCharIndexAtLineWithIndex(startLineIdx);
+            int endCharIdx;
+            if (endLineIdx == rope.GetTotalLineBreaks())
+            {
+                endCharIdx = rope.GetTotalCharCount() - 1;
+            }
+            else
+            {
+                endCharIdx = rope.GetFirstCharIndexAtLineWithIndex(endLineIdx + 1);
+            }
+
+            var newSelection = new SelectionRange(startCharIdx, endCharIdx, selection.InsertionPosition);
+
+            fileViewModel.UpdateSelection(selection, newSelection);
 
             fileViewModel.Recalculate(true);
         }
