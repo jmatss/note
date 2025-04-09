@@ -124,6 +124,7 @@ namespace Note.Tabs
                     Margin = new Thickness(0, -4, 0, -4),
                     BorderThickness = new Thickness(0, 4, 0, 4),
                     BorderBrush = Brushes.Transparent,
+                    Focusable = false,
                 };
 
                 Panel.SetZIndex(rowSplitter, 1);
@@ -148,6 +149,7 @@ namespace Note.Tabs
                     Margin = new Thickness(-4, 0, -4, 0),
                     BorderThickness = new Thickness(4, 0, 4, 0),
                     BorderBrush = Brushes.Transparent,
+                    Focusable = false,
                 };
 
                 Panel.SetZIndex(colSplitter, 1);
