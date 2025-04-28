@@ -552,10 +552,12 @@ namespace Editor.ViewModel
 
                 if (!string.IsNullOrWhiteSpace(textToFind))
                 {
+                    /*
                     this.Highlights.AddRange(SelectionViewModel.CalculateHighlights(
                         this.Rope,
                         textToFind
                     ));
+                    */
                     this.HighlightsInView.AddRange(SelectionViewModel.CalculateSelections(
                         this.Lines,
                         this.Highlights.Where(x => !x.Overlapse(firstSelection)),

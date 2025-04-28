@@ -176,6 +176,8 @@ namespace Note.Tabs
                 newTabGroup.RowSpan = isHorizontal ? targetTabGroup.RowSpan : 1;
                 newTabGroup.ColumnSpan = isVertical ? targetTabGroup.ColumnSpan : 1;
 
+                this.AdjustGridPositionsAfterAdd(position, newTabGroup);
+
                 if (isHorizontal)
                 {
                     this.ColumnCount++;
@@ -184,8 +186,6 @@ namespace Note.Tabs
                 {
                     this.RowCount++;
                 }
-
-                this.AdjustGridPositionsAfterAdd(position, newTabGroup);
             }
         }
 
@@ -564,10 +564,22 @@ namespace Note.Tabs
 
             if (dragPosition != null)
             {
+                var countsBefore = (this.RowCount, this.ColumnCount);
+
                 var newTabGroup = this.CreateTabGroup(source.Selected);
                 this.AddTabGroup(dragPosition.Value, newTabGroup, target);
 
                 source.RemoveTab(sourceIndex);
+
+                var countsAfter = (this.RowCount, this.ColumnCount);
+                if (object.Equals(countsBefore, countsAfter))
+                {
+                    // Done to trigger redrawing of grid and splitters if it hasn't been triggered
+                    // automatically (which happens if the `this.RowCount` or `this.ColumnCount` changes).
+                    int oldRowCount = this.RowCount;
+                    this.RowCount++;
+                    this.RowCount = oldRowCount;
+                }
 
                 newTabGroup.FocusedFileChanged();
             }
