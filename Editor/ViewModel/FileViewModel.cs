@@ -172,6 +172,7 @@ namespace Editor.ViewModel
                 this.UpdateSelection(selection, new SelectionRange(newCursorCharIndex));
             }
 
+            this._previousSelectionColumnIndex = -1;
             this.RecalculateSelections(true);
         }
 
@@ -323,6 +324,7 @@ namespace Editor.ViewModel
                 SelectionRange newSelection = this.ResetSelections();
                 this.UpdateSelection(newSelection, foundTextLocation);
                 this.Recalculate(true);
+                this._previousSelectionColumnIndex = -1;
                 return true;
             }
             else
