@@ -81,7 +81,8 @@ namespace Text
                     amountOfCharsRead--;
                 }
 
-                rope.Insert(insertCharIndex, new ReadOnlySpan<char>(chars, 0, amountOfCharsRead));
+                const bool addToUndoStack = false;
+                rope.Insert(insertCharIndex, new ReadOnlySpan<char>(chars, 0, amountOfCharsRead), addToUndoStack);
                 insertCharIndex += amountOfCharsRead;
             }
 
@@ -129,9 +130,16 @@ namespace Text
             }
         }
 
-        public void Insert(int idx, ReadOnlySpan<char> chars)
+        /// <summary>
+        /// Inserts the characters `chars` into the rope starting at index `idx`.
+        /// </summary>
+        /// <param name="idx">The index to insert the characters into</param>
+        /// <param name="chars">The characters to <see langword="add"/>into the rope</param>
+        /// <param name="addToUndoStack">If set to false, a temporary mock stack will be used that will be discarded after this call</param>
+        public void Insert(int idx, ReadOnlySpan<char> chars, bool addToUndoStack = true)
         {
-            this.Insert(idx, chars, this.modifications);
+            ModificationsStack modifications = addToUndoStack ? this.modifications : new ModificationsStack(null);
+            this.Insert(idx, chars, modifications);
         }
 
         private void Insert(int idx, ReadOnlySpan<char> chars, ModificationsStack modifications, bool isUndo = false)
