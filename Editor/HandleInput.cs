@@ -153,7 +153,7 @@ namespace Editor
                             oldSelectionCharIdx,
                             viewWidth,
                             charDrawWidth,
-                            charDrawWidth,
+                            charDrawHeight,
                             previousSelectionColumnIndex
                         );
 
@@ -177,7 +177,7 @@ namespace Editor
                             oldSelectionCharIdx,
                             viewWidth,
                             charDrawWidth,
-                            charDrawWidth,
+                            charDrawHeight,
                             previousSelectionColumnIndex
                         );
 
@@ -312,7 +312,7 @@ namespace Editor
             if (isDownwards)
             {
                 int lineCount = rope.GetTotalLineBreaks() + 1;
-                var curLines = LineViewModel.CalculateVirtualLinesWithWordWrapMiddleToBottom(rope, viewWidth, charIdx, y, charDrawWidth, charDrawWidth);
+                var curLines = LineViewModel.CalculateVirtualLinesWithWordWrapMiddleToBottom(rope, viewWidth, charIdx, y, charDrawWidth, charDrawHeight);
 
                 if (curLines.Count >= 2)
                 {
@@ -329,7 +329,7 @@ namespace Editor
                 {
                     // No wordwrapping below us on this line. Scroll to the next real line.
                     int firstCharIdxTargetLine = rope.GetFirstCharIndexAtLineWithIndex(lineIdx + 1);
-                    var nextLines = LineViewModel.CalculateVirtualLinesWithWordWrapMiddleToBottom(rope, viewWidth, firstCharIdxTargetLine, y, charDrawWidth, charDrawWidth);
+                    var nextLines = LineViewModel.CalculateVirtualLinesWithWordWrapMiddleToBottom(rope, viewWidth, firstCharIdxTargetLine, y, charDrawWidth, charDrawHeight);
                     if (nextLines.Count > 0)
                     {
                         nextLine = nextLines[0];
@@ -343,7 +343,7 @@ namespace Editor
             }
             else // isUpwards
             {
-                var curLines = LineViewModel.CalculateVirtualLinesWithWordWrapTopToMiddle(rope, viewWidth, charIdx, charDrawWidth, charDrawWidth);
+                var curLines = LineViewModel.CalculateVirtualLinesWithWordWrapTopToMiddle(rope, viewWidth, charIdx, charDrawWidth, charDrawHeight);
 
                 if (curLines.Count >= 2)
                 {
@@ -360,7 +360,7 @@ namespace Editor
                 {
                     // No wordwrapping above us on this line. Scroll to the next real line (which might potentially be wordwrapped).
                     int firstCharIdxTargetLine = rope.GetFirstCharIndexAtLineWithIndex(lineIdx - 1);
-                    var nextLines = LineViewModel.CalculateVirtualLinesWithWordWrapMiddleToBottom(rope, viewWidth, firstCharIdxTargetLine, y, charDrawWidth, charDrawWidth);
+                    var nextLines = LineViewModel.CalculateVirtualLinesWithWordWrapMiddleToBottom(rope, viewWidth, firstCharIdxTargetLine, y, charDrawWidth, charDrawHeight);
                     nextLine = nextLines[nextLines.Count - 1];
                 }
             }
@@ -370,7 +370,7 @@ namespace Editor
                 return null;
             }
 
-            var curVirtualLine = LineViewModel.CalculateVirtualLinesWithWordWrapTopToMiddle(rope, viewWidth, charIdx, charDrawWidth, charDrawWidth)
+            var curVirtualLine = LineViewModel.CalculateVirtualLinesWithWordWrapTopToMiddle(rope, viewWidth, charIdx, charDrawWidth, charDrawHeight)
                 .LastOrDefault();
             int charCountAtNextLineWithoutLineBreaks = nextLine
                 .Count(x => x.FirstChar != LineViewModel.CARRIAGE_RETURN && x.FirstChar != LineViewModel.LINE_BREAK);

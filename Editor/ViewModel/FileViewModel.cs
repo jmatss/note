@@ -114,9 +114,17 @@ namespace Editor.ViewModel
                 if (this._previousSelectionColumnIndex == -1 &&
                     this.Selections.FirstOrDefault()?.InsertionPositionIndex is int selectionCharIdx)
                 {
-                    int selectionLineIdx = this.Rope.GetLineIndexForCharAtIndex(selectionCharIdx);
-                    int lineStartCharIdx = this.Rope.GetFirstCharIndexAtLineWithIndex(selectionLineIdx);
-                    int columnIdx = selectionCharIdx - lineStartCharIdx;
+                    int columnIdx = LineViewModel.CalculateVirtualLinesWithWordWrapTopToMiddle(
+                            this.Rope,
+                            this.ViewWidth,
+                            selectionCharIdx,
+                            charDrawWidth,
+                            charDrawHeight
+                        )
+                        .LastOrDefault()?
+                        .Select((ch, idx) => (ch, idx))
+                        .FirstOrDefault(x => x.ch.CharIdx == selectionCharIdx)
+                        .idx ?? 0;
                     this._previousSelectionColumnIndex = columnIdx;
                 }
             }
